@@ -47,6 +47,7 @@ class Music(Cog):
     def get_embed_thumbnail(self, url: str) -> Union[str, _EmptyEmbed]:
         if "youtube.com" in url:
             video_id = parse.parse_qs(parse.urlsplit(url).query)["v"]
+            print(video_id)
         elif "youtu.be" in url:
             video_id = parse.urlsplit(url).path.replace("/", "")
         else:
