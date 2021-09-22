@@ -10,8 +10,8 @@ from discord.embeds import _EmptyEmbed, EmptyEmbed
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
 from lavalink import AudioTrack, DefaultPlayer, format_time, QueueEndEvent, TrackStartEvent
 
-from ..bot import Bot
-from ..context import Context
+from bot import Bot
+from context import Context
 
 URL_RE = re.compile(r"https?://(?:www\.)?.+")
 
