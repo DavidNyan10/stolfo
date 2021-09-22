@@ -5,6 +5,7 @@ from urllib import parse
 from discord.ext import commands
 
 import lavalink
+from discord import Color
 from discord.embeds import _EmptyEmbed, EmptyEmbed
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
 from lavalink import AudioTrack, DefaultPlayer, format_time, QueueEndEvent, TrackStartEvent
@@ -38,7 +39,9 @@ class Music(Cog):
             await ctx.send(embed=ctx.embed(error.message))
         elif isinstance(error, CommandInvokeError):
             error = error.original
-            await ctx.send(embed=ctx.embed(f"{error.__class__.__name__}: {error}"))
+            embed = ctx.embed(f"{error.__class__.__name__}: {error}")
+            embed.color = Color(0xFF0E0E)
+            await ctx.send(embed=embed)
 
     def get_embed_thumbnail(self, url: str) -> Union[str, _EmptyEmbed]:
         if "youtube.com" in url:
