@@ -5,8 +5,8 @@ from discord import ClientUser, Message
 from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
 
-from .config import LL_HOST, LL_PORT, LL_PASS, LL_REGION, TOKEN
-from .context import Context
+from config import LL_HOST, LL_PORT, LL_PASS, LL_REGION, TOKEN
+from context import Context
 
 
 class Bot(commands.Bot):
