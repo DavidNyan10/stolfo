@@ -166,6 +166,7 @@ class Music(Cog):
                 )
                 embed.add_field(name="Duration", value=duration)
                 embed.add_field(name="Position in queue", value=len(player.queue))
+                await ctx.send(self.get_embed_thumbnail(track["info"]["uri"]))
 
                 await ctx.send(embed=embed)
 
