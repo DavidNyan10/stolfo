@@ -3,7 +3,6 @@ import re
 from typing import Type, Union
 from urllib import parse
 from discord.ext import commands
-from discord.ext.commands.core import Command
 
 import lavalink
 from discord.embeds import _EmptyEmbed, EmptyEmbed
@@ -14,6 +13,11 @@ from bot import Bot
 from context import Context
 
 URL_RE = re.compile(r"https?://(?:www\.)?.+")
+
+
+class UserError(CommandError):
+    def __init__(self, message: str):
+        self.message = message
 
 
 class Music(Cog):
@@ -30,8 +34,11 @@ class Music(Cog):
         return is_guild
 
     async def cog_command_error(self, ctx: Context, error: Type[CommandError]):
-        if isinstance(error, CommandInvokeError):
-            await ctx.send(embed=ctx.embed(error.original))
+        if isinstance(error, UserError):
+            await ctx.send(embed=ctx.embed(error.message))
+        elif isinstance(error, CommandInvokeError):
+            error = error.original
+            await ctx.send(embed=ctx.embed(f"{error.__class__.__name__}: {error}"))
 
     def get_embed_thumbnail(self, url: str) -> Union[str, _EmptyEmbed]:
         if "youtube.com" in url:
@@ -78,27 +85,27 @@ class Music(Cog):
         should_connect = ctx.command.name in ("play",)
 
         if not ctx.author.voice or not ctx.author.voice.channel:
-            raise CommandInvokeError("You're not connected to a voice channel!")
+            raise UserError("You're not connected to a voice channel!")
 
         if not player.is_connected:
             if not should_connect:
-                raise CommandInvokeError("I'm not connected to a voice channel!")
+                raise UserError("I'm not connected to a voice channel!")
 
             permissions = ctx.author.voice.channel.permissions_for(ctx.me)
 
             if not permissions.connect:
-                raise CommandInvokeError(
+                raise UserError(
                     "I'm missing permissions to connect to your voice channel!"
                 )
 
             if not permissions.speak:
-                raise CommandInvokeError("I'm missing permissions to speak in your voice channel!")
+                raise UserError("I'm missing permissions to speak in your voice channel!")
 
             player.store("channel", ctx.channel.id)
             await ctx.guild.change_voice_state(channel=ctx.author.voice.channel)
         else:
             if int(player.channel_id) != ctx.author.voice.channel.id:
-                raise CommandInvokeError("You need to be in my voice channel to use this!")
+                raise UserError("You need to be in my voice channel to use this!")
 
     @commands.command(aliases=["p"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
@@ -110,7 +117,7 @@ class Music(Cog):
             query = f"ytsearch:{query}"
 
         if not (results := await player.node.get_tracks(query)) or results["tracks"]:
-            raise CommandInvokeError("Nothing found!")
+            raise UserError("Nothing found!")
 
         if results["loadType"] == "PLAYLIST_LOADED":
             tracks = results["tracks"]
