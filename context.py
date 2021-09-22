@@ -23,7 +23,7 @@ class Context(commands.Context):
             color=self.color,
             timestamp=self.message.created_at
         )
-        ret.set_author(name=title, icon_url=self.author.avatar_url, url=url)
+        ret.set_author(name=title, icon_url=self.author.avatar.url, url=url)
         ret.set_footer(text=footer_text, icon_url=footer_icon_url)
         ret.set_thumbnail(url=thumbnail_url)
 
