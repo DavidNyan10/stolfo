@@ -58,12 +58,17 @@ class Music(Cog):
             track: AudioTrack = event.track
             ctx: Context = track.extra["context"]
 
+            if track.track["info"]["isStream"]:
+                duration = f"🔴 Live"
+            else:
+                duration = format_time(track.track["info"]["length"])
+
             embed = ctx.embed(
                 f"Now playing: {track.title}",
                 url=track.uri,
                 thumbnail_url=self.get_embed_thumbnail(track.uri)
             )
-            embed.add_field(name="Duration", value=format_time(track.duration))
+            embed.add_field(name="Duration", value=duration)
             embed.add_field(name="Requested by", value=ctx.author.mention)
 
             await ctx.send(embed=embed)
