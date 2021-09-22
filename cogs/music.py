@@ -57,7 +57,6 @@ class Music(Cog):
         if isinstance(event, TrackStartEvent):
             track: AudioTrack = event.track
             ctx: Context = track.extra["context"]
-            requester = ctx.guild.get_member(track.requester)
 
             embed = ctx.embed(
                 f"Now playing: {track.title}",
@@ -65,7 +64,7 @@ class Music(Cog):
                 thumbnail_url=self.get_embed_thumbnail(track.uri)
             )
             embed.add_field(name="Duration", value=format_time(track.duration))
-            embed.add_field(name="Requested by", value=requester.mention)
+            embed.add_field(name="Requested by", value=ctx.author.mention)
 
             await ctx.send(embed=embed)
 
