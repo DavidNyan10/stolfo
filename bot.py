@@ -1,7 +1,7 @@
 from os import listdir
 
 import lavalink
-from discord import ClientUser, Message
+from discord import ClientUser, Game, Message, Status
 from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
 
@@ -22,6 +22,9 @@ class Bot(commands.Bot):
     async def _on_first_ready(self):
         await self.wait_until_ready()
         self.user: ClientUser
+
+        # set presence
+        await self.change_presence(activity=Game("nya | a!help"), status=Status.dnd)
 
         # lavalink logic
         self.lavalink = lavalink.Client(self.user.id)
