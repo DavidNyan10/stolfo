@@ -119,7 +119,7 @@ class Music(Cog):
         if not URL_RE.match(query):
             query = f"ytsearch:{query}"
 
-        if not (results := await player.node.get_tracks(query)) or results["tracks"]:
+        if not (results := await player.node.get_tracks(query)) or not results["tracks"]:
             raise UserError("Nothing found!")
 
         if results["loadType"] == "PLAYLIST_LOADED":
