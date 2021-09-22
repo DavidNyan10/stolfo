@@ -143,7 +143,9 @@ class Music(Cog):
                 f"Queued {results['playlistInfo']['name']} - {len(tracks)} tracks",
                 url=query
             )
-            embed.add_field(name="Duration", value=format_time(sum(t["length"] for t in tracks)))
+            embed.add_field(name="Duration", value=format_time(
+                sum(t["info"]["length"] for t in tracks)
+            ))
             embed.add_field(name="Position in queue", value=f"{first_position}-{last_position}")
 
             await ctx.send(embed=embed)
