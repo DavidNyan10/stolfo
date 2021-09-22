@@ -59,10 +59,10 @@ class Music(Cog):
             track: AudioTrack = event.track
             ctx: Context = track.extra["context"]
 
-            if track.track["info"]["isStream"]:
+            if track.stream:
                 duration = f"🔴 Live"
             else:
-                duration = format_time(track.track["info"]["length"])
+                duration = format_time(track.duration)
 
             embed = ctx.embed(
                 f"Now playing: {track.title}",
@@ -143,7 +143,7 @@ class Music(Cog):
                 f"Queued {results['playlistInfo']['name']} - {len(tracks)} tracks",
                 url=query
             )
-            embed.add_field(name="Duration", value=format_time(sum(t.duration for t in tracks)))
+            embed.add_field(name="Duration", value=format_time(sum(t["length"] for t in tracks)))
             embed.add_field(name="Position in queue", value=f"{first_position}-{last_position}")
 
             await ctx.send(embed=embed)
@@ -159,7 +159,11 @@ class Music(Cog):
                 else:
                     duration = format_time(track["info"]["length"])
 
-                embed = ctx.embed(f"Queued {track['info']['title']}", url=track["info"]["uri"])
+                embed = ctx.embed(
+                    f"Queued {track['info']['title']}",
+                    url=track["info"]["uri"],
+                    thumbnail_url=self.get_embed_thumbnail(track["info"]["uri"])
+                )
                 embed.add_field(name="Duration", value=duration)
                 embed.add_field(name="Position in queue", value=len(player.queue))
 
