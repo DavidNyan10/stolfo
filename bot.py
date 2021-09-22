@@ -29,7 +29,6 @@ class Bot(commands.Bot):
         # lavalink logic
         self.lavalink = lavalink.Client(self.user.id)
         self.lavalink.add_node(LL_HOST, LL_PORT, LL_PASS, LL_REGION, name="main-node")
-        self.add_listener(self.lavalink.voice_update_handler, "on_socket_response")
 
         # loading cogs
         self.load_extension("jishaku")

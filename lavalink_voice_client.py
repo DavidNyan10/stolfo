@@ -1,6 +1,8 @@
 """From https://github.com/Devoxin/Lavalink.py/pull/116"""
 import lavalink
-from discord import abc, Client, VoiceClient
+from discord import Client, VoiceClient, abc
+
+from config import LL_HOST, LL_PASS, LL_PORT, LL_REGION
 
 
 class LavalinkVoiceClient(VoiceClient):
@@ -20,11 +22,11 @@ class LavalinkVoiceClient(VoiceClient):
         else:
             self.client.lavalink = lavalink.Client(client.user.id)
             self.client.lavalink.add_node(
-                'localhost',
-                2333,
-                'youshallnotpass',
-                'us',
-                'default-node')
+                LL_HOST,
+                LL_PORT,
+                LL_PASS,
+                LL_REGION,
+                name="main-node")
             self.lavalink = self.client.lavalink
 
     async def on_voice_server_update(self, data):

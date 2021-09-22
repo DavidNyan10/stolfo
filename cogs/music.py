@@ -12,6 +12,7 @@ from lavalink import AudioTrack, DefaultPlayer, format_time, QueueEndEvent, Trac
 
 from bot import Bot
 from context import Context
+from lavalink_voice_client import LavalinkVoiceClient
 
 URL_RE = re.compile(r"https?://(?:www\.)?.+")
 
@@ -83,7 +84,7 @@ class Music(Cog):
                 )
             except asyncio.TimeoutError:
                 guild = self.bot.get_guild(int(player.guild_id))
-                await guild.change_voice_state(channel=None)
+                await guild.voice_client.disconnect(force=True)
 
     async def ensure_voice(self, ctx: Context):
         player: DefaultPlayer = self.bot.lavalink.player_manager.create(
@@ -109,7 +110,7 @@ class Music(Cog):
                 raise UserError("I'm missing permissions to speak in your voice channel!")
 
             player.store("channel", ctx.channel.id)
-            await ctx.guild.change_voice_state(channel=ctx.author.voice.channel)
+            await ctx.author.voice.channel.connect(cls=LavalinkVoiceClient)
         else:
             if int(player.channel_id) != ctx.author.voice.channel.id:
                 raise UserError("You need to be in my voice channel to use this!")
@@ -173,7 +174,7 @@ class Music(Cog):
 
         player.queue.clear()
         await player.stop()
-        await ctx.guild.change_voice_state(channel=None)
+        await ctx.guild.voice_client.disconnect(force=True)
 
         embed = ctx.embed(f"Disconnected from {ctx.author.voice.channel.name}!")
         await ctx.send(embed=embed)
