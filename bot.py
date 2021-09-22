@@ -35,10 +35,12 @@ class Bot(commands.Bot):
         self.load_extension("jishaku")
         for file in listdir("./cogs"):
             if file.endswith(".py"):
+                ext = f"cogs.{file[:-3]}"
                 try:
-                    self.load_extension(f"cogs.{file[:-3]}")
+                    self.load_extension(ext)
+                    print(f"{ext} loaded successfully")
                 except Exception as e:
-                    print(f"Failed to load cogs.{file[:-3]}: {e}")
+                    print(f"Failed to load {ext}: {e}")
 
 
 def main():
