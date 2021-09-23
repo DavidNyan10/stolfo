@@ -245,7 +245,7 @@ class Music(Cog):
             position = f"{format_time(player.position)}/{format_time(track.duration)}"
 
         embed = ctx.embed(
-            f"Now playing: {track.title}",
+            track.title,
             url=track.uri,
             thumbnail_url=self.get_embed_thumbnail(track.uri)
         )
