@@ -193,7 +193,7 @@ class Music(Cog):
         player = self.get_player(ctx.guild.id)
 
         embed = ctx.embed(f"Skipped {player.current.title}")
-        await player.stop()
+        await player.skip()
         await ctx.send(embed=embed)
 
 
