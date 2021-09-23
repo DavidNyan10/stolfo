@@ -186,15 +186,16 @@ class Music(Cog):
         await player.stop()
         await ctx.guild.voice_client.disconnect(force=True)
 
-        embed = ctx.embed(f"Disconnected from {ctx.author.voice.channel.name}!")
-        await ctx.send(embed=embed)
+        await ctx.send(embed=ctx.embed(f"Disconnected from {ctx.author.voice.channel.name}!"))
 
     @commands.command(aliases=["s"])
     async def skip(self, ctx: Context):
         player = ctx.player
 
-        embed = ctx.embed(f"Skipped {player.current.title}")
-        await ctx.send(embed=embed)
+        if not player.is_playing:
+            return await ctx.send(embed=ctx.embed("Nothing is playing!"))
+
+        await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}"))
         await player.skip()
 
     @commands.command(aliases=["q"])
@@ -231,8 +232,7 @@ class Music(Cog):
         else:
             q_duration = ""
 
-        embed = ctx.embed(f"Queue - {q_length}{q_duration}", "\n".join(queue_items))
-        await ctx.send(embed=embed)
+        await ctx.send(embed=ctx.embed(f"Queue - {q_length}{q_duration}", "\n".join(queue_items)))
 
     @commands.command(aliases=["np", "current", "now", "song"])
     async def nowplaying(self, ctx: Context):
@@ -254,6 +254,14 @@ class Music(Cog):
         embed.add_field(name="Requested by", value=track.extra["context"].author.mention)
 
         await ctx.send(embed=embed)
+
+    @commands.command(aliases="nuke")
+    async def clear(self, ctx: Context):
+        player = ctx.player
+        amount = len(player.queue)
+
+        player.queue.clear()
+        await ctx.send(embed=ctx.embed(f"Cleared {amount} song{'' if amount == 1 else 's'}!"))
 
 
 def setup(bot: Bot):
