@@ -201,7 +201,7 @@ class Music(Cog):
         player = ctx.get_player()
         queue_items = [
             f"**{i + 1}: **[{track.title}]({track.uri}) "
-            f"[{format_time(track.duration)}] ({track.context.author.mention})"
+            f"[{format_time(track.duration)}] ({track.extra['context'].author.mention})"
             for i, track in enumerate(player.queue)
         ]
 
