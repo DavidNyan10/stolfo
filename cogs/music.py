@@ -62,7 +62,6 @@ class Music(Cog):
         if isinstance(event, TrackStartEvent):
             track: AudioTrack = event.track
             ctx: Context = track.extra["context"]
-            track.extra["start_time"] = datetime.utcnow()
 
             if track.stream:
                 duration = "🔴 Live"
@@ -217,10 +216,7 @@ class Music(Cog):
         if current.stream:
             current_pos = "stream"
         else:
-            start = current.extra["start"]
-            now = datetime.utcnow()
-            elapsed = (now - start) // timedelta(milliseconds=1)
-            current_pos = f"{format_time(elapsed)}/{format_time(current.length)}"
+            current_pos = f"{format_time(player.position)}/{format_time(current.length)}"
 
         queue_items.insert(
             0,
@@ -246,10 +242,7 @@ class Music(Cog):
         if track.stream:
             position = "🔴 Live"
         else:
-            start = track.extra["start"]
-            now = datetime.utcnow()
-            elapsed = (now - start) // timedelta(milliseconds=1)
-            position = f"{format_time(elapsed)} {format_time(track.length)}"
+            position = f"{format_time(player.position)}/{format_time(track.length)}"
 
         embed = ctx.embed(
             f"Now playing: {track.title}",
