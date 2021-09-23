@@ -122,7 +122,7 @@ class Music(Cog):
     @commands.command(aliases=["p"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
     async def play(self, ctx: Context, *, query: str):
-        """Queues a track. Can be used to resume player if paused."""
+        """Queues a track. Can be used to resume the player if paused."""
         player = ctx.player
         query = query.strip("<>")
 
@@ -181,7 +181,7 @@ class Music(Cog):
 
     @commands.command(aliases=["dc", "stop", "leave"])
     async def disconnect(self, ctx: Context):
-        """Disconnects player from its voice channel."""
+        """Disconnects the player from its voice channel."""
         player = ctx.player
 
         player.queue.clear()
