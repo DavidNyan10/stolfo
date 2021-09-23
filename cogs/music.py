@@ -199,14 +199,19 @@ class Music(Cog):
     @commands.command(aliases=["q"])
     async def queue(self, ctx: Context):
         player = ctx.get_player()
+
+        if not player.queue:
+            embed = ctx.embed("Nothing is queued!")
+            return await ctx.send(embed=embed)
+
         queue_items = [
-            f"{i + 1}:** [{track.title}]({track.uri}) **"
+            f"**{i + 1}: [{track.title}]({track.uri}) **"
             f"[{format_time(track.duration)}] ({track.extra['context'].author.mention})"
             for i, track in enumerate(player.queue)
         ]
 
         q_length = f"{len(player.queue)} track{'' if len(player.queue) == 1 else 's'}"
-        if player.queue and all(not t.stream for t in player.queue):
+        if all(not t.stream for t in player.queue):
             q_duration = f" ({format_time(sum(t.duration for t in player.queue))})"
         else:
             q_duration = ""
