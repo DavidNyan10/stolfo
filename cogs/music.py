@@ -221,7 +221,7 @@ class Music(Cog):
         queue_items.insert(
             0,
             f"**▶ [{current.title}]({current.uri}) "
-            f"[{'stream' if current.stream else format_time(current_pos)}] "
+            f"[{current_pos}] "
             f"({current.extra['context'].author.mention})"
         )
 
