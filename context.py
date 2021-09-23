@@ -8,7 +8,6 @@ from lavalink import DefaultPlayer
 
 class Context(commands.Context):
     color = 0xFEBABC
-    bot: __import__("bot.Bot")
     message: Message
 
     def embed(
