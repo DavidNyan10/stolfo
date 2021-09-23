@@ -253,6 +253,8 @@ class Music(Cog):
         embed.add_field(name="Channel", value=track.author)
         embed.add_field(name="Requested by", value=track.extra["context"].author.mention)
 
+        await ctx.send(embed=embed)
+
 
 def setup(bot: Bot):
     bot.add_cog(Music(bot))
