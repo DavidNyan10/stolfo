@@ -206,7 +206,7 @@ class Music(Cog):
 
         queue_items = [
             f"**{i + 1}: [{track.title}]({track.uri}) **"
-            f"[{'🔴 Live' if track.stream else format_time(track.duration)}] "
+            f"[{'stream' if track.stream else format_time(track.duration)}] "
             f"({track.extra['context'].author.mention})"
             for i, track in enumerate(player.queue)
         ]
