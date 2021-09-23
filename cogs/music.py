@@ -255,11 +255,14 @@ class Music(Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(aliases="nuke")
+    @commands.command(aliases=["nuke"])
     async def clear(self, ctx: Context):
         player = ctx.player
-        amount = len(player.queue)
 
+        if not player.queue:
+            return await ctx.send(embed=ctx.embed("There's nothing to clear!"))
+
+        amount = len(player.queue)
         player.queue.clear()
         await ctx.send(embed=ctx.embed(f"Cleared {amount} song{'' if amount == 1 else 's'}!"))
 
