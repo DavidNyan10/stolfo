@@ -10,7 +10,7 @@ from bot import Bot
 
 class Context(commands.Context):
     color = 0xFEBABC
-    bot: Bot
+    bot: __import__("bot.Bot")
     message: Message
 
     def embed(
