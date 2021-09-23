@@ -266,6 +266,27 @@ class Music(Cog):
         player.queue.clear()
         await ctx.send(embed=ctx.embed(f"Cleared {amount} song{'' if amount == 1 else 's'}!"))
 
+    @commands.command(aliases=["r"])
+    async def remove(self, ctx: Context, index: int):
+        player = ctx.player
+
+        if not player.queue:
+            return await ctx.send(embed=ctx.embed("The queue is empty!"))
+
+        if index < 1 or index > len(player.queue):
+            if len(player.queue) == 1:
+                desc = f"Did you mean `{ctx.prefix}{ctx.invoked_with} 1`?"
+            else:
+                desc = f"Valid track numbers are `1-{len(player.queue)}`."
+
+            return await ctx.send(embed=ctx.embed(f"Invalid track number!", desc))
+
+        track = player.queue.pop(index - 1)
+
+        embed = ctx.embed(f"Removed {track.title}", url=track.uri)
+        embed.add_field(name="Requested by", value=track.extra["context"].author.mention)
+        await ctx.send(embed=embed)
+
 
 def setup(bot: Bot):
     bot.add_cog(Music(bot))
