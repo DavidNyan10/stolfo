@@ -250,7 +250,7 @@ class Music(Cog):
             thumbnail_url=self.get_embed_thumbnail(track.uri)
         )
         embed.add_field(name="Position", value=position)
-        embed.add_field(name="Channel", value=track.author)
+        embed.add_field(name="Uploader", value=track.author)
         embed.add_field(name="Requested by", value=track.extra["context"].author.mention)
 
         await ctx.send(embed=embed)
