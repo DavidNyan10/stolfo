@@ -63,7 +63,7 @@ class Music(Cog):
             ctx: Context = track.extra["context"]
 
             if track.stream:
-                duration = f"🔴 Live"
+                duration = "🔴 Live"
             else:
                 duration = format_time(track.duration)
 
@@ -160,7 +160,7 @@ class Music(Cog):
             )
             if player.is_playing:
                 if track["info"]["isStream"]:
-                    duration = f"🔴 Live"
+                    duration = "🔴 Live"
                 else:
                     duration = format_time(track["info"]["length"])
 
@@ -206,7 +206,8 @@ class Music(Cog):
 
         queue_items = [
             f"**{i + 1}: [{track.title}]({track.uri}) **"
-            f"[{format_time(track.duration)}] ({track.extra['context'].author.mention})"
+            f"[{'🔴 Live' if track.stream else format_time(track.duration)}] "
+            f"({track.extra['context'].author.mention})"
             for i, track in enumerate(player.queue)
         ]
 
