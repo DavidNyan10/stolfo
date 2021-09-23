@@ -220,7 +220,7 @@ class Music(Cog):
 
         queue_items.insert(
             0,
-            f"**▶ [{current.title}]({current.uri}) "
+            f"**▶ [{current.title}]({current.uri}) **"
             f"[{current_pos}] "
             f"({current.extra['context'].author.mention})"
         )
