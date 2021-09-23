@@ -122,6 +122,7 @@ class Music(Cog):
     @commands.command(aliases=["p"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
     async def play(self, ctx: Context, *, query: str):
+        """Queues a track. Can be used to resume player if paused."""
         player = ctx.player
         query = query.strip("<>")
 
@@ -180,6 +181,7 @@ class Music(Cog):
 
     @commands.command(aliases=["dc", "stop", "leave"])
     async def disconnect(self, ctx: Context):
+        """Disconnects player from its voice channel."""
         player = ctx.player
 
         player.queue.clear()
@@ -190,6 +192,7 @@ class Music(Cog):
 
     @commands.command(aliases=["s"])
     async def skip(self, ctx: Context):
+        """Skips the currently playing track."""
         player = ctx.player
 
         if not player.is_playing:
@@ -200,6 +203,7 @@ class Music(Cog):
 
     @commands.command(aliases=["q"])
     async def queue(self, ctx: Context):
+        """Displays the player's queue."""
         player = ctx.player
 
         if not player.queue:
@@ -236,6 +240,7 @@ class Music(Cog):
 
     @commands.command(aliases=["np", "current", "now", "song"])
     async def nowplaying(self, ctx: Context):
+        """Shows info about the currently playing track."""
         player = ctx.player
         track = player.current
 
@@ -257,6 +262,7 @@ class Music(Cog):
 
     @commands.command(aliases=["nuke"])
     async def clear(self, ctx: Context):
+        """Clears the player's queue."""
         player = ctx.player
 
         if not player.queue:
@@ -268,6 +274,7 @@ class Music(Cog):
 
     @commands.command(aliases=["r"])
     async def remove(self, ctx: Context, index: int):
+        """Removes a song from the player's queue."""
         player = ctx.player
 
         if not player.queue:
