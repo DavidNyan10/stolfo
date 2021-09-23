@@ -201,7 +201,7 @@ class Music(Cog):
         player = ctx.get_player()
 
         if not player.queue:
-            embed = ctx.embed("Nothing is queued!")
+            embed = ctx.embed("Queue is empty!")
             return await ctx.send(embed=embed)
 
         queue_items = [
