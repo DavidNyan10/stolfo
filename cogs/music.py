@@ -195,7 +195,7 @@ class Music(Cog):
         if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
-        await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}"))
+        await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}", url=player.current.uri))
         await player.skip()
 
     @commands.command(aliases=["q"])
