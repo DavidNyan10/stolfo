@@ -1,12 +1,13 @@
 import asyncio
 import re
+from datetime import datetime, timedelta
 from typing import Type, Union
 from urllib import parse
-from discord.ext import commands
 
 import lavalink
-from discord import Color
+from discord import Color, player
 from discord.embeds import _EmptyEmbed, EmptyEmbed
+from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
 from lavalink import AudioTrack, DefaultPlayer, format_time, QueueEndEvent, TrackStartEvent
 
@@ -61,6 +62,7 @@ class Music(Cog):
         if isinstance(event, TrackStartEvent):
             track: AudioTrack = event.track
             ctx: Context = track.extra["context"]
+            track.extra["start_time"] = datetime.utcnow()
 
             if track.stream:
                 duration = "🔴 Live"
@@ -121,7 +123,7 @@ class Music(Cog):
     @commands.command(aliases=["p"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
     async def play(self, ctx: Context, *, query: str):
-        player = ctx.get_player()
+        player = ctx.player
         query = query.strip("<>")
 
         if not URL_RE.match(query):
@@ -179,7 +181,7 @@ class Music(Cog):
 
     @commands.command(aliases=["dc", "stop", "leave"])
     async def disconnect(self, ctx: Context):
-        player = ctx.get_player()
+        player = ctx.player
 
         player.queue.clear()
         await player.stop()
@@ -190,7 +192,7 @@ class Music(Cog):
 
     @commands.command(aliases=["s"])
     async def skip(self, ctx: Context):
-        player = ctx.get_player()
+        player = ctx.player
 
         embed = ctx.embed(f"Skipped {player.current.title}")
         await ctx.send(embed=embed)
@@ -198,7 +200,7 @@ class Music(Cog):
 
     @commands.command(aliases=["q"])
     async def queue(self, ctx: Context):
-        player = ctx.get_player()
+        player = ctx.player
 
         if not player.queue:
             embed = ctx.embed("Queue is empty!")
@@ -211,6 +213,22 @@ class Music(Cog):
             for i, track in enumerate(player.queue)
         ]
 
+        current = player.current
+        if current.stream:
+            current_pos = "stream"
+        else:
+            start = current.extra["start"]
+            now = datetime.utcnow()
+            elapsed = (now - start) // timedelta(milliseconds=1)
+            current_pos = f"{format_time(elapsed)}/{format_time(current.length)}"
+
+        queue_items.insert(
+            0,
+            f"**▶ [{current.title}]({current.uri}) "
+            f"[{'stream' if current.stream else format_time(current_pos)}] "
+            f"({current.extra['context'].author.mention})"
+        )
+
         q_length = f"{len(player.queue)} track{'' if len(player.queue) == 1 else 's'}"
         if all(not t.stream for t in player.queue):
             q_duration = f" ({format_time(sum(t.duration for t in player.queue))})"
@@ -219,6 +237,28 @@ class Music(Cog):
 
         embed = ctx.embed(f"Queue - {q_length}{q_duration}", "\n".join(queue_items))
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=["np", "current", "now", "song"])
+    async def nowplaying(self, ctx: Context):
+        player = ctx.player
+        track = player.current
+
+        if track.stream:
+            position = "🔴 Live"
+        else:
+            start = track.extra["start"]
+            now = datetime.utcnow()
+            elapsed = (now - start) // timedelta(milliseconds=1)
+            position = f"{format_time(elapsed)} {format_time(track.length)}"
+
+        embed = ctx.embed(
+            f"Now playing: {track.title}",
+            url=track.uri,
+            thumbnail_url=self.get_embed_thumbnail(track.uri)
+        )
+        embed.add_field(name="Position", value=position)
+        embed.add_field(name="Channel", value=track.author)
+        embed.add_field(name="Requested by", value=track.extra["context"].author.mention)
 
 
 def setup(bot: Bot):

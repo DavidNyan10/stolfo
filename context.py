@@ -30,5 +30,6 @@ class Context(commands.Context):
 
         return ret
 
-    def get_player(self) -> DefaultPlayer:
+    @property
+    def player(self) -> DefaultPlayer:
         return self.bot.lavalink.player_manager.get(self.guild.id)
