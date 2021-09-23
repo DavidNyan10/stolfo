@@ -3,10 +3,14 @@ from typing import Optional, Union
 from discord import Message
 from discord.embeds import Embed, EmptyEmbed, _EmptyEmbed
 from discord.ext import commands
+from lavalink import DefaultPlayer
+
+from bot import Bot
 
 
 class Context(commands.Context):
     color = 0xFEBABC
+    bot: Bot
     message: Message
 
     def embed(
@@ -28,3 +32,6 @@ class Context(commands.Context):
         ret.set_thumbnail(url=thumbnail_url)
 
         return ret
+
+    def get_player(self) -> DefaultPlayer:
+        return self.bot.lavalink.player_manager.get(self.guild.id)

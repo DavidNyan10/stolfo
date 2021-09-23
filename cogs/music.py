@@ -121,7 +121,7 @@ class Music(Cog):
     @commands.command(aliases=["p"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
     async def play(self, ctx: Context, *, query: str):
-        player = self.get_player(ctx.guild.id)
+        player = ctx.get_player()
         query = query.strip("<>")
 
         if not URL_RE.match(query):
@@ -179,7 +179,7 @@ class Music(Cog):
 
     @commands.command(aliases=["dc", "stop", "leave"])
     async def disconnect(self, ctx: Context):
-        player = self.get_player(ctx.guild.id)
+        player = ctx.get_player()
 
         player.queue.clear()
         await player.stop()
@@ -190,10 +190,28 @@ class Music(Cog):
 
     @commands.command(aliases=["s"])
     async def skip(self, ctx: Context):
-        player = self.get_player(ctx.guild.id)
+        player = ctx.get_player()
 
         embed = ctx.embed(f"Skipped {player.current.title}")
+        await ctx.send(embed=embed)
         await player.skip()
+
+    @commands.command(aliases=["q"])
+    async def queue(self, ctx: Context):
+        player = ctx.get_player()
+        queue_items = [
+            f"**{i + 1}: **[{track.title}]({track.uri}) "
+            f"[{format_time(track.duration)}] ({track.context.author.mention})"
+            for i, track in enumerate(player.queue)
+        ]
+
+        q_length = f"{len(player.queue)} track{'' if len(player.queue) == 1 else 's'}"
+        if player.queue and all(not t.stream for t in player.queue):
+            q_duration = f" ({format_time(sum(t.length for t in player.queue))})"
+        else:
+            q_duration = ""
+
+        embed = ctx.embed(f"Queue - {q_length}{q_duration}", "\n".join(queue_items))
         await ctx.send(embed=embed)
 
 
