@@ -54,6 +54,9 @@ class Music(Cog):
 
         return f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
 
+    def get_player(self, guild_id: int) -> DefaultPlayer:
+        return self.bot.lavalink.player_manager.get(guild_id)
+
     async def track_hook(self, event: lavalink.Event):
         if isinstance(event, TrackStartEvent):
             track: AudioTrack = event.track
@@ -118,7 +121,7 @@ class Music(Cog):
     @commands.command(aliases=["p"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
     async def play(self, ctx: Context, *, query: str):
-        player: DefaultPlayer = self.bot.lavalink.player_manager.get(ctx.guild.id)
+        player = self.get_player(ctx.guild.id)
         query = query.strip("<>")
 
         if not URL_RE.match(query):
@@ -176,13 +179,21 @@ class Music(Cog):
 
     @commands.command(aliases=["dc", "stop", "leave"])
     async def disconnect(self, ctx: Context):
-        player: DefaultPlayer = self.bot.lavalink.player_manager.get(ctx.guild.id)
+        player = self.get_player(ctx.guild.id)
 
         player.queue.clear()
         await player.stop()
         await ctx.guild.voice_client.disconnect(force=True)
 
         embed = ctx.embed(f"Disconnected from {ctx.author.voice.channel.name}!")
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=["s"])
+    async def skip(self, ctx: Context):
+        player = self.get_player(ctx.guild.id)
+
+        embed = ctx.embed(f"Skipped {player.current.title}")
+        await player.stop()
         await ctx.send(embed=embed)
 
 
