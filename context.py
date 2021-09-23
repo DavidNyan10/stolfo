@@ -5,8 +5,6 @@ from discord.embeds import Embed, EmptyEmbed, _EmptyEmbed
 from discord.ext import commands
 from lavalink import DefaultPlayer
 
-from bot import Bot
-
 
 class Context(commands.Context):
     color = 0xFEBABC
