@@ -216,7 +216,7 @@ class Music(Cog):
         if current.stream:
             current_pos = "stream"
         else:
-            current_pos = f"{format_time(player.position)}/{format_time(current.length)}"
+            current_pos = f"{format_time(player.position)}/{format_time(current.duration)}"
 
         queue_items.insert(
             0,
@@ -242,7 +242,7 @@ class Music(Cog):
         if track.stream:
             position = "🔴 Live"
         else:
-            position = f"{format_time(player.position)}/{format_time(track.length)}"
+            position = f"{format_time(player.position)}/{format_time(track.duration)}"
 
         embed = ctx.embed(
             f"Now playing: {track.title}",
