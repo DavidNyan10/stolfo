@@ -1,7 +1,7 @@
 from os import listdir
 
 import lavalink
-from discord import ClientUser, Game, Message, Status
+from discord import ClientUser, Game, Intents, Message, Status
 from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
 
@@ -43,7 +43,7 @@ class Bot(commands.Bot):
 
 
 def main():
-    bot = Bot(command_prefix=when_mentioned_or("a!"))
+    bot = Bot(command_prefix=when_mentioned_or("a!"), intents=Intents.all())
     bot.run(TOKEN)
 
 
