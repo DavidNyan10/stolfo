@@ -1,3 +1,4 @@
+from datetime import datetime
 from os import listdir, path
 
 import lavalink
@@ -13,6 +14,7 @@ class Bot(commands.Bot):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
         self.lavalink: lavalink.Client
+        self.start_time: datetime
 
         self.loop.create_task(self._on_first_ready())
 
@@ -21,7 +23,9 @@ class Bot(commands.Bot):
 
     async def _on_first_ready(self):
         await self.wait_until_ready()
+
         self.user: ClientUser
+        self.start_time = datetime.utcnow()
 
         # set presence
         await self.change_presence(activity=Game("nya | a!help"), status=Status.dnd)
