@@ -1,4 +1,4 @@
-from os import listdir
+from os import listdir, path
 
 import lavalink
 from discord import ClientUser, Game, Intents, Message, Status
@@ -40,6 +40,16 @@ class Bot(commands.Bot):
                     print(f"{ext} loaded successfully")
                 except Exception as e:
                     print(f"Failed to load {ext}: {e}")
+
+        if path.exists("./cogs/private"):
+            for file in listdir("./cogs/private"):
+                if file.endswith(".py"):
+                    ext = f"cogs.private.{file[:-3]}"
+                    try:
+                        self.load_extension(ext)
+                        print(f"{ext} loaded successfully")
+                    except Exception as e:
+                        print(f"Failed to load {ext}: {e}")
 
 
 def main():
