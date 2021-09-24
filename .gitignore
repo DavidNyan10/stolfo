@@ -1,5 +1,5 @@
 config.py
-cogs.private/
+cogs/private/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
