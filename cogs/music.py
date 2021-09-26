@@ -234,7 +234,9 @@ class Music(Cog):
         else:
             q_duration = f" ({format_time(sum(t.length for t in player.queue))})"
 
-        await ctx.send(embed=ctx.embed(f"Queue - {q_length}{q_duration}", "\n".join(queue_items)))
+        await ctx.send(
+            embed=ctx.embed(f"Queue - {q_length}{q_duration}", "\n".join(queue_items)[:4000])
+        )
 
     @commands.command(aliases=["np", "current", "now", "song"])
     async def nowplaying(self, ctx: Context):
