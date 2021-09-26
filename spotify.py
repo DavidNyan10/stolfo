@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from wavelink.ext.spotify import SpotifyClient, SpotifyRequestError
 
 from context import Context
+from pool import Node
 from track import PartialTrack, Track
 
 
@@ -11,6 +12,15 @@ from track import PartialTrack, Track
 class _Track:
     artist: str
     name: str
+
+
+async def get_data(query: str, node: Node) -> dict:
+    data, resp = await node._get_data("loadtracks", {"identifier": query})
+
+    if resp.status != 200:
+        raise Exception("Invalid server response! Try again later.")
+
+    return data
 
 
 class Spotify(SpotifyClient):
@@ -33,17 +43,21 @@ class Spotify(SpotifyClient):
 
         return tracks
 
-    async def get_playlist_tracks(self, ctx: Context, playlist: dict) -> list[PartialTrack]:
+    async def get_playlist_tracks(self, ctx: Context, playlist: dict, node: Node) -> list[PartialTrack]:
         tracks = []
 
         if url := playlist["tracks"]["next"]:
             for t in playlist["tracks"]["items"]:
                 artist = t["track"]["artists"][0]["name"]
-                track = PartialTrack(
-                    query=f"{artist} - {t['track']['name']}",
-                    cls=Track,
-                    context=ctx
-                )
+                name = t["track"]["name"]
+                # track = PartialTrack(
+                #     query=f"{artist} - {t['track']['name']}",
+                #     cls=Track,
+                #     context=ctx
+                # )
+                ll_data = await get_data(f"ytsearch:{artist} - {name}", node)
+                track_data = ll_data["tracks"][0]
+                track = Track(track_data["track"], track_data["info"], context=ctx)
                 tracks.append(track)
 
             while True:
@@ -52,11 +66,15 @@ class Spotify(SpotifyClient):
 
                     for t in playlist["items"]:
                         artist = t["track"]["artists"][0]["name"]
-                        track = PartialTrack(
-                            query=f"{artist} - {t['track']['name']}",
-                            cls=Track,
-                            context=ctx
-                        )
+                        name = t["track"]["name"]
+                        # track = PartialTrack(
+                        #     query=f"{artist} - {t['track']['name']}",
+                        #     cls=Track,
+                        #     context=ctx
+                        # )
+                        ll_data = await get_data(f"ytsearch:{artist} - {name}", node)
+                        track_data = ll_data["tracks"][0]
+                        track = Track(track_data["track"], track_data["info"], context=ctx)
                         tracks.append(track)
 
                     if not playlist["next"]:
@@ -66,11 +84,15 @@ class Spotify(SpotifyClient):
         else:
             for t in playlist["tracks"]["items"]:
                 artist = t["track"]["artists"][0]["name"]
-                track = PartialTrack(
-                    query=f"{artist} - {t['track']['name']}",
-                    cls=Track,
-                    context=ctx
-                )
+                name = t["track"]["name"]
+                # track = PartialTrack(
+                #     query=f"{artist} - {t['track']['name']}",
+                #     cls=Track,
+                #     context=ctx
+                # )
+                ll_data = await get_data(f"ytsearch:{artist} - {name}", node)
+                track_data = ll_data["tracks"][0]
+                track = Track(track_data["track"], track_data["info"], context=ctx)
                 tracks.append(track)
 
         return tracks

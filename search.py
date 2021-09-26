@@ -85,7 +85,17 @@ class SearchResult(Converter):
                 self.thumbnail = data["images"][0].get("url", "")
                 self.type = "MULTIPLE"
 
-                self.tracks.extend(track for track in await spotify.get_playlist_tracks(ctx, data))
+                msg = await ctx.send(embed=ctx.embed(
+                    f"Queueing {self.name}...",
+                    "This can take a while for large playlists.",
+                    thumbnail_url=self.thumbnail
+                ))
+                async with ctx.typing():
+                    self.tracks.extend(
+                        track for track in
+                        await spotify.get_playlist_tracks(ctx, data, self._node)
+                    )
+                    await msg.delete()
 
             else:
                 raise SearchException("Invalid Spotify API response.")
