@@ -23,7 +23,6 @@ class Track(YouTubeTrack):
     def __init__(self, *args, context: Context, **kwargs):
         super().__init__(*args, **kwargs)
         self.context = context
-        print(self.context)
 
     async def search(self, *args, context: Context, **kwargs):
         self.context = context
