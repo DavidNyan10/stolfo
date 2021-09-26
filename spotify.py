@@ -40,7 +40,7 @@ class Spotify(SpotifyClient):
             for t in playlist["tracks"]["items"]:
                 artist = t["track"]["artists"][0]["name"]
                 track = PartialTrack(
-                    f"{artist} - {t['track']['name']}",
+                    query=f"{artist} - {t['track']['name']}",
                     cls=Track,
                     context=ctx
                 )
@@ -53,7 +53,7 @@ class Spotify(SpotifyClient):
                     for t in playlist["items"]:
                         artist = t["track"]["artists"][0]["name"]
                         track = PartialTrack(
-                            f"{artist} - {t['track']['name']}",
+                            query=f"{artist} - {t['track']['name']}",
                             cls=Track,
                             context=ctx
                         )
@@ -67,7 +67,7 @@ class Spotify(SpotifyClient):
             for t in playlist["tracks"]["items"]:
                 artist = t["track"]["artists"][0]["name"]
                 track = PartialTrack(
-                    f"{artist} - {t['track']['name']}",
+                    query=f"{artist} - {t['track']['name']}",
                     cls=Track,
                     context=ctx
                 )
