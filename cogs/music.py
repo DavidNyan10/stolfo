@@ -142,7 +142,8 @@ class Music(Cog):
 
             embed = ctx.embed(
                 f"Queued {search.name} - {len(tracks)} tracks",
-                url=search.url if search.url else EmptyEmbed
+                url=search.url if search.url else EmptyEmbed,
+                thumbnail_url=search.thumbnail
             )
 
             if any(isinstance(t, PartialTrack) or t.is_stream() for t in tracks):
