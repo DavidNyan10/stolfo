@@ -1,14 +1,16 @@
-from typing import Optional, Union
+from typing import Union
 
 from discord import Message
 from discord.embeds import Embed, EmptyEmbed, _EmptyEmbed
 from discord.ext import commands
-from lavalink import DefaultPlayer
+
+from wavelink import Player
 
 
 class Context(commands.Context):
     color = 0xFEBABC
     message: Message
+    voice_client: Player
 
     def embed(
         self,
@@ -29,7 +31,3 @@ class Context(commands.Context):
         ret.set_thumbnail(url=thumbnail_url)
 
         return ret
-
-    @property
-    def player(self) -> DefaultPlayer:
-        return self.bot.lavalink.player_manager.get(self.guild.id)
