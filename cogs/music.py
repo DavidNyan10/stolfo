@@ -228,10 +228,10 @@ class Music(Cog):
         )
 
         q_length = f"{len(player.queue)} track{'' if len(player.queue) == 1 else 's'}"
-        if all(not t.is_stream() for t in player.queue):
-            q_duration = f" ({format_time(sum(t.length for t in player.queue))})"
-        else:
+        if any(isinstance(t, PartialTrack) or t.is_stream() for t in player.queue):
             q_duration = ""
+        else:
+            q_duration = f" ({format_time(sum(t.length for t in player.queue))})"
 
         await ctx.send(embed=ctx.embed(f"Queue - {q_length}{q_duration}", "\n".join(queue_items)))
 
