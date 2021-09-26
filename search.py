@@ -65,7 +65,7 @@ class SearchResult(Converter):
                 self.type = "TRACK"
 
                 artist = data["artists"][0]["name"]
-
+                print(artist, self.name)
                 ll_data = await self.get_data(f"{artist} - {self.name}")
                 track_data = ll_data["tracks"][0]
                 track = Track(track_data["track"], track_data["info"], context=ctx)
