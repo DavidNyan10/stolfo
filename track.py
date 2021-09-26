@@ -24,6 +24,25 @@ class Track(YouTubeTrack):
         super().__init__(*args, **kwargs)
         self.context = context
 
-    async def search(self, *args, context: Context, **kwargs):
-        self.context = context
-        return await super().search(*args, **kwargs)
+    @classmethod
+    async def search(
+        cls,
+        query: str,
+        *,
+        type=None,
+        node=MISSING,
+        return_first: bool = False,
+        context: Context
+    ):
+        if node is MISSING:
+            node = NodePool.get_node()
+
+        data, resp = await node._get_data("loadtracks", {"identifier": f"ytsearch:{query}"})
+
+        if resp.status != 200:
+            raise Exception("Invalid server response.")
+
+        track_data = data["tracks"][0]
+        track = cls(track_data["track"], track_data["info"], context=context)
+
+        return track
