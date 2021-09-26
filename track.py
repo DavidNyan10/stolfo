@@ -42,7 +42,9 @@ class Track(YouTubeTrack):
         if resp.status != 200:
             raise Exception("Invalid server response.")
 
-        track_data = data["tracks"][0]
-        track = cls(track_data["track"], track_data["info"], context=context)
+        tracks = [cls(t["track"], t["info"], context=context) for t in data["tracks"]]
 
-        return track
+        if return_first:
+            return tracks[0]
+
+        return tracks
