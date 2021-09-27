@@ -46,6 +46,7 @@ class SearchResult(Converter):
         return data
 
     async def convert(self, ctx: Context, argument: str):
+        argument = argument.strip("<>")
         if match := SPOTIFY_RE.match(argument):
             spotify: Spotify = ctx.bot.spotify
             _type, _id = match["type"], match["id"]

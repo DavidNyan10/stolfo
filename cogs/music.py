@@ -10,7 +10,7 @@ from wavelink import Player, WaitQueue
 
 from bot import Bot
 from context import Context
-from search import SearchResult
+from search import SearchException, SearchResult
 from track import PartialTrack, Track
 
 
@@ -36,7 +36,7 @@ class Music(Cog):
         return is_guild
 
     async def cog_command_error(self, ctx: Context, error: Type[CommandError]):
-        if isinstance(error, UserError):
+        if isinstance(error, (UserError, SearchException)):
             await ctx.send(embed=ctx.embed(error.message))
         elif isinstance(error, CommandInvokeError):
             error = error.original
