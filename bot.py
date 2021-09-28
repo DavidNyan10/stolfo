@@ -1,15 +1,13 @@
 from datetime import datetime
 from os import listdir, path
-from aiohttp import ClientSession
 
-import wavelink
 from discord import ClientUser, Game, Intents, Message, Status, VoiceRegion
 from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
 
 from config import LL_HOST, LL_PORT, LL_PASS, SPOTIFY_ID, SPOTIFY_SECRET, TOKEN
 from context import Context
-from pool import NodePool
+from pool import Node, NodePool
 from spotify import Spotify
 
 
@@ -63,7 +61,7 @@ class Bot(commands.Bot):
                     except Exception as e:
                         print(f"Failed to load {ext}: {e}")
 
-    async def on_wavelink_node_ready(self, node: wavelink.Node):
+    async def on_wavelink_node_ready(self, node: Node):
         print(f"Wavelink node {node.identifier} is ready")
 
 
