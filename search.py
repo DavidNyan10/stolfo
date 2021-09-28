@@ -76,11 +76,12 @@ class SearchResult(Converter):
                 self.thumbnail = max(data["images"], key=lambda i: i["height"]).get("url", "")
                 self.type = "MULTIPLE"
 
-                for t in await spotify.get_album_tracks(data):
-                    ll_data = await self.get_data(f"ytsearch:{t.artist} - {t.name}")
-                    track_data = ll_data["tracks"][0]
-                    track = Track(track_data["track"], track_data["info"], context=ctx)
-                    self.tracks.append(track)
+                async with ctx.typing():
+                    for t in await spotify.get_album_tracks(data):
+                        ll_data = await self.get_data(f"ytsearch:{t.artist} - {t.name}")
+                        track_data = ll_data["tracks"][0]
+                        track = Track(track_data["track"], track_data["info"], context=ctx)
+                        self.tracks.append(track)
 
             elif data["type"] == "playlist":
                 self.thumbnail = data["images"][0].get("url", "")
