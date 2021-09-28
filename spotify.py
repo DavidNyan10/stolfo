@@ -50,11 +50,6 @@ class Spotify(SpotifyClient):
             for t in playlist["tracks"]["items"]:
                 artist = t["track"]["artists"][0]["name"]
                 name = t["track"]["name"]
-                # track = PartialTrack(
-                #     query=f"{artist} - {t['track']['name']}",
-                #     cls=Track,
-                #     context=ctx
-                # )
                 ll_data = await get_data(f"ytsearch:{artist} - {name}", node)
                 track_data = ll_data["tracks"][0]
                 track = Track(track_data["track"], track_data["info"], context=ctx)
@@ -67,11 +62,6 @@ class Spotify(SpotifyClient):
                     for t in playlist["items"]:
                         artist = t["track"]["artists"][0]["name"]
                         name = t["track"]["name"]
-                        # track = PartialTrack(
-                        #     query=f"{artist} - {t['track']['name']}",
-                        #     cls=Track,
-                        #     context=ctx
-                        # )
                         ll_data = await get_data(f"ytsearch:{artist} - {name}", node)
                         track_data = ll_data["tracks"][0]
                         track = Track(track_data["track"], track_data["info"], context=ctx)
@@ -85,11 +75,6 @@ class Spotify(SpotifyClient):
             for t in playlist["tracks"]["items"]:
                 artist = t["track"]["artists"][0]["name"]
                 name = t["track"]["name"]
-                # track = PartialTrack(
-                #     query=f"{artist} - {t['track']['name']}",
-                #     cls=Track,
-                #     context=ctx
-                # )
                 ll_data = await get_data(f"ytsearch:{artist} - {name}", node)
                 track_data = ll_data["tracks"][0]
                 track = Track(track_data["track"], track_data["info"], context=ctx)

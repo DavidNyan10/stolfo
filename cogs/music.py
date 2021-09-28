@@ -85,7 +85,7 @@ class Music(Cog):
         embed.add_field(name="Duration", value=length)
         embed.add_field(name="Requested by", value=ctx.author.mention)
 
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, delete_after=int(track.length))
 
     @Cog.listener()
     async def on_wavelink_track_end(self, player: Player, track: Track, reason: str):
