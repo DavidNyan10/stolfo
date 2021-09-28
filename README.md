@@ -1,5 +1,5 @@
 # stolfo
-public music bot made after rythm and groovy's takedown
+music bot made after rythm and groovy's takedown
 
 in case you decide to clone this, i won't offer you much support. it requires a Lavalink server and all that so make sure you have that running, then change values from the code accordingly
 
