@@ -1,14 +1,17 @@
 import asyncio
+from io import StringIO
+from traceback import format_exception
 from typing import Type, Union
 
 from async_timeout import timeout
-from discord import Color
+from discord import Color, File
 from discord.embeds import _EmptyEmbed, EmptyEmbed
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
 from wavelink import Player, WaitQueue
 
 from bot import Bot
+from config import LOG_CHANNEL
 from context import Context
 from search import SearchException, SearchResult
 from track import PartialTrack, Track
@@ -44,7 +47,23 @@ class Music(Cog):
             embed.color = Color(0xFF0E0E)
             await ctx.send(embed=embed)
         else:
-            raise error
+            log = self.bot.get_channel(LOG_CHANNEL)
+            full_traceback = "".join(
+                format_exception(type(error), error, error.__traceback__, chain=True)
+            )
+
+            embed = ctx.embed(
+                "Command exception caught!",
+                f"```python\n{full_traceback}\n```" if len(full_traceback) <= 4000 else EmptyEmbed
+            )
+            embed.add_field(name="Message", value=f"`{ctx.message.content}`")
+            embed.add_field(name="Guild", value=f"{ctx.guild.name} ({ctx.guild.id})")
+
+            if len(full_traceback) > 4000:
+                file = File(StringIO(full_traceback), "traceback.txt")
+                return await log.send(embed=embed, file=file)
+
+            await log.send(embed=embed)
 
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
         if hasattr(track, "thumbnail"):
