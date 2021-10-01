@@ -4,7 +4,7 @@ from traceback import format_exception
 from typing import Type, Union
 
 from async_timeout import timeout
-from discord import Color, File
+from discord import Color, File, Member, VoiceState
 from discord.embeds import _EmptyEmbed, EmptyEmbed
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
@@ -64,6 +64,17 @@ class Music(Cog):
                 return await log.send(embed=embed, file=file)
 
             await log.send(embed=embed)
+
+    @Cog.listener()
+    async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState):
+        if member.id == self.bot.user.id \
+           and not after.channel \
+           and member.guild.voice_client is not None:
+            player: Player = member.guild.voice_client
+
+            player.queue.clear()
+            await player.stop()
+            await player.disconnect(force=True)
 
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
         if hasattr(track, "thumbnail"):
