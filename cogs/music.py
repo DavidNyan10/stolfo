@@ -343,7 +343,7 @@ class Music(Cog):
         del player.queue[_from - 1]
         player.queue.put_at_index(_to - 1, track)
 
-        await ctx.embed(f"Moved {track.title} to position {_to}")
+        await ctx.send(embed=ctx.embed(f"Moved {track.title} to position {_to}"))
 
 
 def setup(bot: Bot):
