@@ -328,6 +328,23 @@ class Music(Cog):
         embed.add_field(name="Requested by", value=track.context.author.mention)
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def move(self, ctx: Context, _from: int, _to: int):
+        """Moves a song from the first given position to the second one."""
+        player: Player = ctx.voice_client
+
+        try:  # just silently returning on out of range input for now
+            player.queue[_from - 1]
+            player.queue[_to - 1]
+        except IndexError:
+            return
+
+        track = player.queue[_from - 1]
+        del player.queue[_from - 1]
+        player.queue.put_at_index(_to - 1, track)
+
+        await ctx.embed(f"Moved {track.title} to position {_to}")
+
 
 def setup(bot: Bot):
     bot.add_cog(Music(bot))
