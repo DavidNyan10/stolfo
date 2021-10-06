@@ -8,14 +8,12 @@ from pomice import Node, NodePool
 
 from config import LL_HOST, LL_PORT, LL_PASS, SPOTIFY_ID, SPOTIFY_SECRET, TOKEN
 from context import Context
-from spotify import Spotify
 
 
 class Bot(commands.Bot):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
         self.pomice: Node
-        self.spotify: Spotify
         self.start_time: datetime
 
         self.loop.create_task(self._on_first_ready())
@@ -27,7 +25,6 @@ class Bot(commands.Bot):
         await self.wait_until_ready()
 
         self.user: ClientUser
-        self.spotify = Spotify(client_id=SPOTIFY_ID, client_secret=SPOTIFY_SECRET)
         self.start_time = datetime.utcnow()
 
         # set presence
