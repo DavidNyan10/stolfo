@@ -5,7 +5,7 @@ from typing import Type, Union
 
 from async_timeout import timeout
 from discord import Color, File, Member, VoiceState
-from discord.embeds import _EmptyEmbed, EmptyEmbed
+from discord.embeds import _EmptyEmbed, EmptyEmbed as Empty
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
 from pomice import Playlist, Track, TrackEndEvent, TrackStartEvent
@@ -54,7 +54,7 @@ class Music(Cog):
 
             embed = ctx.embed(
                 "Command exception caught!",
-                f"```python\n{full_traceback}\n```" if len(full_traceback) <= 4000 else EmptyEmbed
+                f"```python\n{full_traceback}\n```" if len(full_traceback) <= 4000 else Empty
             )
             embed.add_field(name="Message", value=f"`{ctx.message.content}`")
             embed.add_field(name="Guild", value=f"{ctx.guild.name} ({ctx.guild.id})")
@@ -82,7 +82,7 @@ class Music(Cog):
         elif any(i in track.uri for i in ("youtu.be", "youtube.com")):
             return f"https://img.youtube.com/vi/{track.identifier}/maxresdefault.jpg"
         else:
-            return EmptyEmbed
+            return Empty
 
     def format_queue(self, queue: WaitQueue) -> str:
         items = []
@@ -119,10 +119,14 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_pomice_track_end(self, event: TrackEndEvent):
-        player = event.player
+        player: Player = event.player
         try:
             async with timeout(300):
-                await player.play(await player.queue.get_wait())
+                if player.shuffle:
+                    track = await player.shuffled_queue.get_wait()
+                    del player.queue[player.queue.find_position[track]]
+                else:
+                    await player.play(await player.queue.get_wait())
         except asyncio.TimeoutError:
             await player.disconnect(force=True)
 
@@ -164,12 +168,14 @@ class Music(Cog):
 
             for track in tracks:
                 player.queue.put(track)
+                if player.shuffle:
+                    player.shuffled_queue.put(track)
 
             last_position = len(player.queue)
 
             embed = ctx.embed(
                 f"Queued {search.name} - {search.track_count} tracks",
-                url=search.url if search.url else EmptyEmbed,
+                url=search.url if search.url else Empty,
                 thumbnail_url=search.thumbnail
             )
 
@@ -187,6 +193,8 @@ class Music(Cog):
         else:
             track = search[0]
             player.queue.put(track)
+            if player.shuffle:
+                player.shuffled_queue.put(track)
 
             if player.is_playing:
                 if track.is_stream:
@@ -234,12 +242,13 @@ class Music(Cog):
     async def queue(self, ctx: Context):
         """Displays the player's queue."""
         player = ctx.voice_client
+        queue = player.queue if not player.shuffle else player.shuffled_queue
 
-        if not player.queue:
+        if not queue:
             embed = ctx.embed("Queue is empty!")
             return await ctx.send(embed=embed)
 
-        queue_items = self.format_queue(player.queue)
+        queue_items = self.format_queue(queue)
 
         current = player.current
         if current.is_stream:
@@ -255,12 +264,12 @@ class Music(Cog):
             f"({current.ctx.author.mention})"
         )
 
-        q_length = f"{len(player.queue)} track{'' if len(player.queue) == 1 else 's'}"
-        if any(t.is_stream for t in player.queue):
+        q_length = f"{len(queue)} track{'' if len(queue) == 1 else 's'}"
+        if any(t.is_stream for t in queue):
             q_duration = ""
         else:
             total = format_time(
-                sum(t.length for t in player.queue) + (current.length - player.position)
+                sum(t.length for t in queue) + (current.length - player.position)
             )
             q_duration = f" ({total})"
 
@@ -313,20 +322,24 @@ class Music(Cog):
     async def remove(self, ctx: Context, index: int):
         """Removes a song from the player's queue."""
         player = ctx.voice_client
+        queue = player.queue if not player.shuffle else player.shuffled_queue
 
-        if not player.queue:
+        if not queue:
             return await ctx.send(embed=ctx.embed("The queue is empty!"))
 
-        if index < 1 or index > len(player.queue):
-            if len(player.queue) == 1:
+        if index < 1 or index > len(queue):
+            if len(queue) == 1:
                 desc = f"Did you mean `{ctx.prefix}{ctx.invoked_with} 1`?"
             else:
-                desc = f"Valid track numbers are `1-{len(player.queue)}`."
+                desc = f"Valid track numbers are `1-{len(queue)}`."
 
             return await ctx.send(embed=ctx.embed(f"Invalid track number!", desc))
 
-        track = player.queue[index - 1]
-        del player.queue[index - 1]
+        track = queue[index - 1]
+        del queue[index - 1]
+
+        if player.shuffle:
+            del player.queue[player.queue.find_position(track)]
 
         title = track.title if not track.spotify else f"{track.author} - {track.title}"
         embed = ctx.embed(f"Removed {title}", url=track.uri)
@@ -336,20 +349,31 @@ class Music(Cog):
     @commands.command()
     async def move(self, ctx: Context, _from: int, _to: int):
         """Moves a song from the first given position to the second one."""
-        player: Player = ctx.voice_client
+        player = ctx.voice_client
+        queue = player.queue if not player.shuffle else player.shuffled_queue
 
         try:  # just silently returning on out of range input for now
-            player.queue[_from - 1]
-            player.queue[_to - 1]
+            queue[_from - 1]
+            queue[_to - 1]
         except IndexError:
             return
 
-        track = player.queue[_from - 1]
-        del player.queue[_from - 1]
-        player.queue.put_at_index(_to - 1, track)
+        track = queue[_from - 1]
+        del queue[_from - 1]
+        queue.put_at_index(_to - 1, track)
 
         title = track.title if not track.spotify else f"{track.author} - {track.title}"
         await ctx.send(embed=ctx.embed(f"Moved {title} to position {_to}"))
+
+    @commands.command()
+    async def shuffle(self, ctx: Context):
+        player = ctx.voice_client
+        player.set_shuffle(not player.shuffle)
+
+        action = "Enabled" if player.shuffle else "Disabled"
+        desc = f"Run the command again to restore the queue's order." if player.shuffle else Empty
+
+        await ctx.send(embed=ctx.embed(f"{action} shuffle!", desc))
 
 
 def setup(bot: Bot):
