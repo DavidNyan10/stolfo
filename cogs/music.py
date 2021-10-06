@@ -8,12 +8,13 @@ from discord import Color, File, Member, VoiceState
 from discord.embeds import _EmptyEmbed, EmptyEmbed
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
-from pomice import Playlist, Track
-from wavelink import Player, WaitQueue
+from pomice import Playlist, Track, TrackEndEvent, TrackStartEvent
+from wavelink import WaitQueue
 
 from bot import Bot
 from config import LOG_CHANNEL
 from context import Context
+from player import QueuePlayer as Player
 
 
 def format_time(milliseconds: int) -> str:
@@ -93,7 +94,8 @@ class Music(Cog):
         return items
 
     @Cog.listener()
-    async def on_wavelink_track_start(self, player: Player, track: Track):
+    async def on_pomice_track_start(self, event: TrackStartEvent):
+        track = event.player.current
         ctx = track.ctx
 
         if track.is_stream:
@@ -112,7 +114,8 @@ class Music(Cog):
         await ctx.send(embed=embed, delete_after=track.length / 1000)
 
     @Cog.listener()
-    async def on_wavelink_track_end(self, player: Player, track: Track, reason: str):
+    async def on_pomice_track_end(self, event: TrackEndEvent):
+        player = event.player
         try:
             async with timeout(300):
                 await player.play(await player.queue.get_wait())

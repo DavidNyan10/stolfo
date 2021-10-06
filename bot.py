@@ -61,9 +61,6 @@ class Bot(commands.Bot):
                     except Exception as e:
                         print(f"Failed to load {ext}: {e}")
 
-    async def on_wavelink_node_ready(self, node: Node):
-        print(f"Wavelink node {node.identifier} is ready")
-
 
 def main():
     bot = Bot(command_prefix=when_mentioned_or("a!"), intents=Intents.all())
