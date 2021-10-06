@@ -175,7 +175,7 @@ class Music(Cog):
 
             embed = ctx.embed(
                 f"Queued {search.name} - {search.track_count} tracks",
-                url=search.url if search.uri else Empty,
+                url=query if search.spotify else Empty,
                 thumbnail_url=search.thumbnail
             )
 
