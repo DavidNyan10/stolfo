@@ -3,7 +3,7 @@ from typing import Type
 from discord import Client, VoiceChannel
 from pomice import Player
 
-from .queue import WaitQueue
+from queue import WaitQueue
 
 
 class QueuePlayer(Player):
