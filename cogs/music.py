@@ -213,7 +213,7 @@ class Music(Cog):
 
                 embed = ctx.embed(
                     f"Queued {track.title}",
-                    url=track.url,
+                    url=track.uri,
                     thumbnail_url=self.get_embed_thumbnail(track)
                 )
                 embed.add_field(name="Duration", value=length)
