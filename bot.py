@@ -13,9 +13,9 @@ from context import Context
 class Bot(commands.Bot):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
-        self.pomice: Node
         self.start_time: datetime
 
+        self.pomice = NodePool()
         self.loop.create_task(self._on_first_ready())
 
     async def get_context(self, message: Message, *, cls=Context):
@@ -30,7 +30,7 @@ class Bot(commands.Bot):
         # set presence
         await self.change_presence(activity=Game("nya | a!help"), status=Status.dnd)
 
-        self.pomice = await NodePool.create_node(
+        await self.pomice.create_node(
             bot=self,
             host=LL_HOST,
             port=LL_PORT,

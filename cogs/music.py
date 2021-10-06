@@ -79,6 +79,8 @@ class Music(Cog):
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
         if thumbnail := track.info.get("thumbnail"):
             return thumbnail
+        elif any(i in track.uri for i in ("youtu.be", "youtube.com")):
+            return f"https://img.youtube.com/vi/{track.identifier}/maxresdefault.jpg"
         else:
             return EmptyEmbed
 
@@ -153,7 +155,7 @@ class Music(Cog):
         """Queues one or multiple tracks. Can be used to resume the player if paused."""
         player = ctx.voice_client
 
-        search = await self.bot.pomice.get_tracks(query, ctx)
+        search = await player.get_tracks(query, ctx)
         if isinstance(search, Playlist):
             tracks = search.tracks
             first_position = len(player.queue) + 1
