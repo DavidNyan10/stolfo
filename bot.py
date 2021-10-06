@@ -6,8 +6,8 @@ from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
 from pomice import Node, NodePool
 
-from .config import LL_HOST, LL_PORT, LL_PASS, SPOTIFY_ID, SPOTIFY_SECRET, TOKEN
-from .context import Context
+from config import LL_HOST, LL_PORT, LL_PASS, SPOTIFY_ID, SPOTIFY_SECRET, TOKEN
+from context import Context
 
 
 class Bot(commands.Bot):
