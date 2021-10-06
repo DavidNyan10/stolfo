@@ -124,6 +124,7 @@ class Music(Cog):
             async with timeout(300):
                 if player.shuffle:
                     track = await player.shuffled_queue.get_wait()
+                    await player.play(track)
                     del player.queue[player.queue.find_position(track)]
                 else:
                     await player.play(await player.queue.get_wait())
