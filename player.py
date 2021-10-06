@@ -7,5 +7,5 @@ from wavelink import WaitQueue
 
 class QueuePlayer(Player):
     def __init__(self, client: Type[Client], channel: VoiceChannel):
-        super().__init__()
+        super().__init__(client, channel)
         self.queue = WaitQueue()
