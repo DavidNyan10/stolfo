@@ -87,8 +87,9 @@ class Music(Cog):
     def format_queue(self, queue: WaitQueue) -> str:
         items = []
         for i, track in enumerate(queue):
+            title = track.title if not track.spotify else f"{track.author} - {track.title}"
             items.append(
-                f"**{i + 1}: [{track.title}]({track.uri}) **"
+                f"**{i + 1}: [{title}]({track.uri}) **"
                 f"[{'stream' if track.is_stream else format_time(track.length)}] "
                 f"({track.ctx.author.mention})"
             )
@@ -105,8 +106,9 @@ class Music(Cog):
         else:
             length = format_time(track.length)
 
+        title = track.title if not track.spotify else f"{track.author} - {track.title}"
         embed = ctx.embed(
-            f"Now playing: {track.title}",
+            f"Now playing: {title}",
             url=track.uri,
             thumbnail_url=self.get_embed_thumbnail(track)
         )
@@ -245,9 +247,10 @@ class Music(Cog):
         else:
             current_pos = f"{format_time(player.position)}/{format_time(current.length)}"
 
+        cur_title = current.title if not current.spotify else f"{current.author} - {current.title}"
         queue_items.insert(
             0,
-            f"**▶ [{current.title}]({current.uri}) **"
+            f"**▶ [{cur_title}]({current.uri}) **"
             f"[{current_pos}] "
             f"({current.ctx.author.mention})"
         )
@@ -279,8 +282,9 @@ class Music(Cog):
         else:
             position = f"{format_time(player.position)}/{format_time(track.length)}"
 
+        title = track.title if not track.spotify else f"{track.author} - {track.title}"
         embed = ctx.embed(
-            track.title,
+            title,
             url=track.uri,
             thumbnail_url=self.get_embed_thumbnail(track)
         )
@@ -321,7 +325,8 @@ class Music(Cog):
         track = player.queue[index - 1]
         del player.queue[index - 1]
 
-        embed = ctx.embed(f"Removed {track.title}", url=track.uri)
+        title = track.title if not track.spotify else f"{track.author} - {track.title}"
+        embed = ctx.embed(f"Removed {title}", url=track.uri)
         embed.add_field(name="Requested by", value=track.ctx.author.mention)
         await ctx.send(embed=embed)
 
@@ -340,7 +345,8 @@ class Music(Cog):
         del player.queue[_from - 1]
         player.queue.put_at_index(_to - 1, track)
 
-        await ctx.send(embed=ctx.embed(f"Moved {track.title} to position {_to}"))
+        title = track.title if not track.spotify else f"{track.author} - {track.title}"
+        await ctx.send(embed=ctx.embed(f"Moved {title} to position {_to}"))
 
 
 def setup(bot: Bot):
