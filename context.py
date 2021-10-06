@@ -4,13 +4,13 @@ from discord import Message
 from discord.embeds import Embed, EmptyEmbed, _EmptyEmbed
 from discord.ext import commands
 
-from wavelink import Player
+from player import QueuePlayer
 
 
 class Context(commands.Context):
     color = 0xFEBABC
     message: Message
-    voice_client: Player
+    voice_client: QueuePlayer
 
     def embed(
         self,

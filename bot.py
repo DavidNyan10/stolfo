@@ -4,16 +4,17 @@ from os import listdir, path
 from discord import ClientUser, Game, Intents, Message, Status, VoiceRegion
 from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
+from pomice import Node, NodePool
 
 from config import LL_HOST, LL_PORT, LL_PASS, SPOTIFY_ID, SPOTIFY_SECRET, TOKEN
 from context import Context
-from pool import Node, NodePool
 from spotify import Spotify
 
 
 class Bot(commands.Bot):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
+        self.pomice: Node
         self.spotify: Spotify
         self.start_time: datetime
 
@@ -32,12 +33,14 @@ class Bot(commands.Bot):
         # set presence
         await self.change_presence(activity=Game("nya | a!help"), status=Status.dnd)
 
-        await NodePool.create_node(
+        self.pomice = await NodePool.create_node(
             bot=self,
             host=LL_HOST,
             port=LL_PORT,
             password=LL_PASS,
-            region=VoiceRegion.frankfurt
+            identifier="MAIN",
+            spotify_client_id=SPOTIFY_ID,
+            spotify_client_secret=SPOTIFY_SECRET
         )
 
         # loading cogs

@@ -8,17 +8,16 @@ from discord import Color, File, Member, VoiceState
 from discord.embeds import _EmptyEmbed, EmptyEmbed
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
+from pomice import Playlist, Track
 from wavelink import Player, WaitQueue
 
 from bot import Bot
 from config import LOG_CHANNEL
 from context import Context
-from search import SearchException, SearchResult
-from track import PartialTrack, Track
 
 
-def format_time(seconds: float) -> str:
-    hours, rem = divmod(int(seconds), 3600)
+def format_time(milliseconds: int) -> str:
+    hours, rem = divmod(milliseconds // 1000, 3600)
     minutes, seconds = divmod(rem, 60)
 
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
@@ -39,14 +38,14 @@ class Music(Cog):
         return is_guild
 
     async def cog_command_error(self, ctx: Context, error: Type[CommandError]):
-        if isinstance(error, (UserError, SearchException)):
+        if isinstance(error, UserError):
             await ctx.send(embed=ctx.embed(error.message))
         elif isinstance(error, CommandInvokeError):
             error = error.original
             embed = ctx.embed(f"{error.__class__.__name__}: {error}")
             embed.color = Color(0xFF0E0E)
             await ctx.send(embed=embed)
-        else:
+
             log = self.bot.get_channel(LOG_CHANNEL)
             full_traceback = "".join(
                 format_exception(type(error), error, error.__traceback__, chain=True)
@@ -77,32 +76,27 @@ class Music(Cog):
             await player.disconnect(force=True)
 
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
-        if hasattr(track, "thumbnail"):
-            return track.thumbnail
+        if thumbnail := track.info.get("thumbnail"):
+            return thumbnail
         else:
             return EmptyEmbed
 
     def format_queue(self, queue: WaitQueue) -> str:
         items = []
         for i, track in enumerate(queue):
-            if isinstance(track, PartialTrack):
-                items.append(
-                    f"**{i + 1}: {track.title} **({track.context.author.mention})"
-                )
-            else:
-                items.append(
-                    f"**{i + 1}: [{track.title}]({track.uri}) **"
-                    f"[{'stream' if track.is_stream() else format_time(track.length)}] "
-                    f"({track.context.author.mention})"
-                )
+            items.append(
+                f"**{i + 1}: [{track.title}]({track.uri}) **"
+                f"[{'stream' if track.is_stream else format_time(track.length)}] "
+                f"({track.ctx.author.mention})"
+            )
 
         return items
 
     @Cog.listener()
     async def on_wavelink_track_start(self, player: Player, track: Track):
-        ctx = track.context
+        ctx = track.ctx
 
-        if track.is_stream():
+        if track.is_stream:
             length = "🔴 Live"
         else:
             length = format_time(track.length)
@@ -115,7 +109,7 @@ class Music(Cog):
         embed.add_field(name="Duration", value=length)
         embed.add_field(name="Requested by", value=ctx.author.mention)
 
-        await ctx.send(embed=embed, delete_after=int(track.length))
+        await ctx.send(embed=embed, delete_after=track.length / 1000)
 
     @Cog.listener()
     async def on_wavelink_track_end(self, player: Player, track: Track, reason: str):
@@ -152,16 +146,12 @@ class Music(Cog):
 
     @commands.command(aliases=["p"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
-    async def play(self, ctx: Context, *, search: SearchResult):
+    async def play(self, ctx: Context, *, query: str):
         """Queues one or multiple tracks. Can be used to resume the player if paused."""
         player = ctx.voice_client
 
-        if search.type == "SEARCH_RESULT":
-            raise CommandInvokeError(
-                "play argument received loadtype search_result -- THIS SHOULD NOT HAPPEN"
-            )
-
-        if search.type == "MULTIPLE":
+        search = await self.bot.pomice.get_tracks(query, ctx)
+        if isinstance(search, Playlist):
             tracks = search.tracks
             first_position = len(player.queue) + 1
 
@@ -171,37 +161,36 @@ class Music(Cog):
             last_position = len(player.queue)
 
             embed = ctx.embed(
-                f"Queued {search.name} - {len(tracks)} tracks",
+                f"Queued {search.name} - {search.track_count} tracks",
                 url=search.url if search.url else EmptyEmbed,
                 thumbnail_url=search.thumbnail
             )
 
-            if any(isinstance(t, PartialTrack) or t.is_stream() for t in tracks):
+            if any(t.is_stream for t in tracks):
                 embed.add_field(name="# of tracks", value=len(tracks))
             else:
                 embed.add_field(
                     name="Duration",
-                    value=format_time(sum(t.duration for t in tracks))
+                    value=format_time(sum(t.length for t in tracks))
                 )
 
             embed.add_field(name="Position in queue", value=f"{first_position}-{last_position}")
 
             await ctx.send(embed=embed)
-
-        elif search.type == "TRACK":
-            track = search.tracks[0]
+        else:
+            track = search[0]
             player.queue.put(track)
 
             if player.is_playing():
-                if track.is_stream():
+                if track.is_stream:
                     length = "🔴 Live"
                 else:
                     length = format_time(track.length)
 
                 embed = ctx.embed(
-                    f"Queued {search.name}",
-                    url=search.url,
-                    thumbnail_url=search.thumbnail
+                    f"Queued {track.name}",
+                    url=track.url,
+                    thumbnail_url=self.get_embed_thumbnail(track)
                 )
                 embed.add_field(name="Duration", value=length)
                 embed.add_field(name="Position in queue", value=len(player.queue))
@@ -245,8 +234,8 @@ class Music(Cog):
 
         queue_items = self.format_queue(player.queue)
 
-        current = player.source
-        if current.is_stream():
+        current = player.current
+        if current.is_stream:
             current_pos = "stream"
         else:
             current_pos = f"{format_time(player.position)}/{format_time(current.length)}"
@@ -255,15 +244,15 @@ class Music(Cog):
             0,
             f"**▶ [{current.title}]({current.uri}) **"
             f"[{current_pos}] "
-            f"({current.context.author.mention})"
+            f"({current.ctx.author.mention})"
         )
 
         q_length = f"{len(player.queue)} track{'' if len(player.queue) == 1 else 's'}"
-        if any(isinstance(t, PartialTrack) or t.is_stream() for t in player.queue):
+        if any(t.is_stream for t in player.queue):
             q_duration = ""
         else:
             total = format_time(
-                sum(t.length for t in player.queue) + (current.duration - player.position)
+                sum(t.length for t in player.queue) + (current.length - player.position)
             )
             q_duration = f" ({total})"
 
@@ -275,9 +264,9 @@ class Music(Cog):
     async def nowplaying(self, ctx: Context):
         """Shows info about the currently playing track."""
         player = ctx.voice_client
-        track = player.source
+        track = player.current
 
-        if track.is_stream():
+        if track.is_stream:
             position = "🔴 Live"
         else:
             position = f"{format_time(player.position)}/{format_time(track.length)}"
@@ -289,7 +278,7 @@ class Music(Cog):
         )
         embed.add_field(name="Position", value=position)
         embed.add_field(name="Uploader", value=track.author)
-        embed.add_field(name="Requested by", value=track.context.author.mention)
+        embed.add_field(name="Requested by", value=track.ctx.author.mention)
 
         await ctx.send(embed=embed)
 
@@ -325,7 +314,7 @@ class Music(Cog):
         del player.queue[index - 1]
 
         embed = ctx.embed(f"Removed {track.title}", url=track.uri)
-        embed.add_field(name="Requested by", value=track.context.author.mention)
+        embed.add_field(name="Requested by", value=track.ctx.author.mention)
         await ctx.send(embed=embed)
 
     @commands.command()
