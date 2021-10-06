@@ -184,7 +184,7 @@ class Music(Cog):
             track = search[0]
             player.queue.put(track)
 
-            if player.is_playing():
+            if player.is_playing:
                 if track.is_stream:
                     length = "🔴 Live"
                 else:
@@ -200,7 +200,7 @@ class Music(Cog):
 
                 await ctx.send(embed=embed)
 
-        if not player.is_playing():
+        if not player.is_playing:
             await player.play(player.queue.get())
 
     @commands.command(aliases=["dc", "stop", "leave"])
