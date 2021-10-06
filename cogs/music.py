@@ -1,4 +1,5 @@
 import asyncio
+import re
 from io import StringIO
 from traceback import format_exception
 from typing import Type, Union
@@ -15,6 +16,8 @@ from bot import Bot
 from config import LOG_CHANNEL
 from context import Context
 from player import QueuePlayer as Player
+
+URL_RE = re.compile(r'https?://(?:www\.)?.+')
 
 
 def format_time(milliseconds: Union[float, int]) -> str:
@@ -161,8 +164,13 @@ class Music(Cog):
     async def play(self, ctx: Context, *, query: str):
         """Queues one or multiple tracks. Can be used to resume the player if paused."""
         player = ctx.voice_client
+        query = query.strip("<>")
+
+        if not URL_RE.match(query):
+            query = f"ytsearch:{query}"
 
         search = await player.get_tracks(query, ctx)
+
         if isinstance(search, Playlist):
             tracks = search.tracks
             first_position = len(player.queue) + 1
