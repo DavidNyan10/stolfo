@@ -4,7 +4,7 @@ from discord import Message
 from discord.embeds import Embed, EmptyEmbed, _EmptyEmbed
 from discord.ext import commands
 
-from player import QueuePlayer
+from .player import QueuePlayer
 
 
 class Context(commands.Context):

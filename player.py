@@ -2,7 +2,8 @@ from typing import Type
 
 from discord import Client, VoiceChannel
 from pomice import Player
-from wavelink import WaitQueue
+
+from .queue import WaitQueue
 
 
 class QueuePlayer(Player):
