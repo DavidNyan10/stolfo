@@ -17,8 +17,8 @@ from context import Context
 from player import QueuePlayer as Player
 
 
-def format_time(milliseconds: int) -> str:
-    hours, rem = divmod(milliseconds // 1000, 3600)
+def format_time(milliseconds: Union[float, int]) -> str:
+    hours, rem = divmod(int(milliseconds // 1000), 3600)
     minutes, seconds = divmod(rem, 60)
 
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
@@ -270,6 +270,9 @@ class Music(Cog):
         """Shows info about the currently playing track."""
         player = ctx.voice_client
         track = player.current
+
+        if not player.is_playing:
+            return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
         if track.is_stream:
             position = "🔴 Live"
