@@ -184,8 +184,8 @@ class Music(Cog):
 
             embed = ctx.embed(
                 f"Queued {search.name} - {search.track_count} tracks",
-                url=query if search.spotify else Empty,
-                thumbnail_url=search.thumbnail
+                url=search.uri if search.spotify else Empty,
+                thumbnail_url=search.thumbnail if search.spotify else Empty
             )
 
             if any(t.is_stream for t in tracks):
@@ -212,7 +212,7 @@ class Music(Cog):
                     length = format_time(track.length)
 
                 embed = ctx.embed(
-                    f"Queued {track.name}",
+                    f"Queued {track.title}",
                     url=track.url,
                     thumbnail_url=self.get_embed_thumbnail(track)
                 )
