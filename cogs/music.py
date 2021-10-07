@@ -259,7 +259,7 @@ class Music(Cog):
                 player.shuffled_queue.put_at_front(track)
 
             if player.is_playing:
-                await self.send_play_embed(ctx, search)
+                await self.send_play_embed(ctx, track)
 
         if not player.is_playing:
             await player.play(player.queue.get())
