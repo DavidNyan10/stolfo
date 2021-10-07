@@ -1,4 +1,5 @@
 import asyncio
+import random
 import re
 from io import StringIO
 from traceback import format_exception
@@ -159,72 +160,163 @@ class Music(Cog):
             if int(ctx.voice_client.channel.id) != ctx.author.voice.channel.id:
                 raise UserError("You need to be in my voice channel to use this!")
 
-    @commands.command(aliases=["p"])
-    @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
-    async def play(self, ctx: Context, *, query: str):
-        """Queues one or multiple tracks. Can be used to resume the player if paused."""
-        player = ctx.voice_client
+    async def get_tracks(self, ctx: Context, query: str):
         query = query.strip("<>")
 
         if not URL_RE.match(query):
             query = f"ytsearch:{query}"
 
-        search = await player.get_tracks(query, ctx)
+        return await ctx.voice_client.get_tracks(query, ctx)
+
+    async def send_play_embed(self, ctx: Context, search: Union[Track, Playlist]):
+        if isinstance(search, Playlist):
+            last_position = len(ctx.voice_client.queue)
+            first_position = last_position - search.track_count + 1
+
+            word = "Shuffled" if ctx.command == self.playshuffle else "Queued"
+
+            embed = ctx.embed(
+                f"{word} {search.name} - {search.track_count} tracks",
+                url=search.uri if search.spotify else Empty,
+                thumbnail_url=search.thumbnail if search.spotify else Empty
+            )
+
+            if any(t.is_stream for t in search.tracks):
+                embed.add_field(name="# of tracks", value=search.track_count)
+            else:
+                embed.add_field(
+                    name="Duration",
+                    value=format_time(sum(t.length for t in search.tracks))
+                )
+
+            embed.add_field(name="Position in queue", value=f"{first_position}-{last_position}")
+        else:
+            if search.is_stream:
+                length = "🔴 Live"
+            else:
+                length = format_time(search.length)
+
+            embed = ctx.embed(
+                f"Queued {search.title}",
+                url=search.uri,
+                thumbnail_url=self.get_embed_thumbnail(search)
+            )
+            embed.add_field(name="Duration", value=length)
+            embed.add_field(name="Position in queue", value=len(ctx.voice_client.queue))
+
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=["p"])
+    @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
+    async def play(self, ctx: Context, *, query: str):
+        """Queues one or multiple tracks. Can be used to resume the player if paused."""
+        player = ctx.voice_client
+        search = await self.get_tracks(ctx, query)
 
         if isinstance(search, Playlist):
             tracks = search.tracks
-            first_position = len(player.queue) + 1
 
             for track in tracks:
                 player.queue.put(track)
                 if player.shuffle:
                     player.shuffled_queue.put(track)
 
-            last_position = len(player.queue)
-
-            embed = ctx.embed(
-                f"Queued {search.name} - {search.track_count} tracks",
-                url=search.uri if search.spotify else Empty,
-                thumbnail_url=search.thumbnail if search.spotify else Empty
-            )
-
-            if any(t.is_stream for t in tracks):
-                embed.add_field(name="# of tracks", value=len(tracks))
-            else:
-                embed.add_field(
-                    name="Duration",
-                    value=format_time(sum(t.length for t in tracks))
-                )
-
-            embed.add_field(name="Position in queue", value=f"{first_position}-{last_position}")
-
-            await ctx.send(embed=embed)
+            await self.send_play_embed(ctx, search)
         else:
             track = search[0]
+
             player.queue.put(track)
             if player.shuffle:
                 player.shuffled_queue.put(track)
 
             if player.is_playing:
-                if track.is_stream:
-                    length = "🔴 Live"
-                else:
-                    length = format_time(track.length)
-
-                embed = ctx.embed(
-                    f"Queued {track.title}",
-                    url=track.uri,
-                    thumbnail_url=self.get_embed_thumbnail(track)
-                )
-                embed.add_field(name="Duration", value=length)
-                embed.add_field(name="Position in queue", value=len(player.queue))
-
-                await ctx.send(embed=embed)
+                await self.send_play_embed(ctx, track)
 
         if not player.is_playing:
             await player.play(player.queue.get())
 
-    @commands.command(aliases=["dc", "stop", "leave"])
+    @commands.command(aliases=["pn", "playtop", "pt"])
+    @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
+    async def playnext(self, ctx: Context, *, query: str):
+        """Same as play command, but adds to the start of the queue."""
+        player = ctx.voice_client
+        search = await self.get_tracks(ctx, query)
+
+        if isinstance(search, Playlist):
+            tracks = search.tracks
+
+            for track in reversed(tracks):
+                player.queue.put_at_front(track)
+                if player.shuffle:
+                    player.shuffled_queue.put_at_front(track)
+
+            await self.send_play_embed(ctx, search)
+        else:
+            track = search[0]
+
+            player.queue.put_at_front(track)
+            if player.shuffle:
+                player.shuffled_queue.put_at_front(track)
+
+        if not player.is_playing:
+            await player.play(player.queue.get())
+
+    @commands.command(aliases=["ps"])
+    @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
+    async def playskip(self, ctx: Context, *, query: str):
+        """Same as playnext, but also skips the currently playing track."""
+        player = ctx.voice_client
+        search = await self.get_tracks(ctx, query)
+
+        if isinstance(search, Playlist):
+            tracks = search.tracks
+
+            for track in reversed(tracks):
+                player.queue.put_at_front(track)
+                if player.shuffle:
+                    player.shuffled_queue.put_at_front(track)
+
+            await self.send_play_embed(ctx, search)
+        else:
+            track = search[0]
+
+            player.queue.put_at_front(track)
+            if player.shuffle:
+                player.shuffled_queue.put_at_front(track)
+
+        if not player.is_playing:
+            await player.play(player.queue.get())
+        else:
+            await player.stop()
+
+    @commands.command(aliases=["ps", "shuffleplay", "sp"])
+    @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
+    async def playshuffle(self, ctx: Context, *, query: str):
+        """Adds the given album/playlist to the queue in random order."""
+        player = ctx.voice_client
+        search = await self.get_tracks(ctx, query)
+
+        if isinstance(search, Playlist):
+            tracks = search.tracks
+            random.shuffle(tracks)
+
+            for track in tracks:
+                player.queue.put(track)
+                if player.shuffle:
+                    player.shuffled_queue.put(track)
+
+            await self.send_play_embed(ctx, search)
+        else:
+            track = search[0]
+
+            player.queue.put(track)
+            if player.shuffle:
+                player.shuffled_queue.put(track)
+
+        if not player.is_playing:
+            await player.play(player.queue.get())
+
+    @commands.command(aliases=["dc", "stop", "leave", "begone", "fuckoff", "gtfo"])
     async def disconnect(self, ctx: Context):
         """Disconnects the player from its voice channel."""
         player = ctx.voice_client
@@ -247,7 +339,7 @@ class Music(Cog):
         await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}", url=player.current.uri))
         await player.stop()
 
-    @commands.command(aliases=["q"])
+    @commands.command(aliases=["q", "next", "comingup"])
     async def queue(self, ctx: Context):
         """Displays the player's queue."""
         player = ctx.voice_client
@@ -355,7 +447,7 @@ class Music(Cog):
         embed.add_field(name="Requested by", value=track.ctx.author.mention)
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(aliases=["m"])
     async def move(self, ctx: Context, _from: int, _to: int):
         """Moves a song from the first given position to the second one."""
         player = ctx.voice_client
