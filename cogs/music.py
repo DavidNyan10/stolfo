@@ -380,7 +380,7 @@ class Music(Cog):
             0,
             f"**▶ [{cur_title}]({current.uri}) **"
             f"[{current_pos}] "
-            f"({current.ctx.author.mention})"
+            f"({current.ctx.author.mention})\n"
         )
 
         q_length = f"{len(queue)} track{'' if len(queue) == 1 else 's'}"
