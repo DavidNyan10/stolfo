@@ -534,14 +534,17 @@ class Music(Cog):
             new_position = position + milliseconds
         elif match := HUMAN_RE.fullmatch(time):
             if m := match.group("m"):
-                if match.group("s") and time.endswith("m"):
+                if match.group("s") and time.lower().endswith("m"):
                     return await ctx.send(embed=ctx.embed(
                         "Invalid time format!",
                         f"See {ctx.prefix}help seek for accepted formats."
                     ))
                 milliseconds += int(m) * 60000
             if s := match.group("s"):
-                milliseconds += int(s) * 1000
+                if time.lower().endswith("m"):
+                    milliseconds += int(s) * 60000
+                else:
+                    milliseconds += int(s) * 1000
 
             new_position = milliseconds
         else:
