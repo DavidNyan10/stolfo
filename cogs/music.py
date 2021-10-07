@@ -478,7 +478,7 @@ class Music(Cog):
             queue[_from - 1]
             queue[_to - 1]
         except IndexError:
-            embed = ctx.embed("Invalid queue position!", f"Valid positions are 1-{len(queue)}")
+            embed = ctx.embed("Invalid queue position!", f"Valid positions are 1-{len(queue)}.")
             return await ctx.send(embed=embed)
 
         track = queue[_from - 1]
