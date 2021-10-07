@@ -189,12 +189,6 @@ class Music(Cog):
                 thumbnail_url=search.thumbnail if search.spotify else Empty
             )
 
-            if search.spotify:
-                embed.description = (
-                    f"{ctx.prefix}skip any song with the wrong audio.\n"
-                    "This can happen because some Spotify tracks can't be found on YouTube."
-                )
-
             if any(t.is_stream for t in search.tracks):
                 embed.add_field(name="# of tracks", value=search.track_count)
             else:
@@ -220,13 +214,6 @@ class Music(Cog):
                 url=search.uri,
                 thumbnail_url=self.get_embed_thumbnail(search)
             )
-
-            if search.spotify:
-                embed.description = (
-                    f"{ctx.prefix}skip any song with the wrong audio.\n"
-                    "This can happen because some Spotify tracks can't be found on YouTube."
-                )
-
             embed.add_field(name="Duration", value=length)
             embed.add_field(name="Position in queue", value=queue_position)
 
