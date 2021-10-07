@@ -107,7 +107,7 @@ class Music(Cog):
     @Cog.listener()
     async def on_pomice_track_start(self, event: TrackStartEvent):
         track = event.player.current
-        ctx = track.ctx
+        ctx: Context = track.ctx
 
         if track.is_stream:
             length = "🔴 Live"
@@ -118,7 +118,11 @@ class Music(Cog):
         embed = ctx.embed(
             f"Now playing: {title}",
             url=track.uri,
-            thumbnail_url=self.get_embed_thumbnail(track)
+            thumbnail_url=self.get_embed_thumbnail(track),
+            footer_text=f"{ctx.prefix}skip if the audio is wrong,"
+            "some Spotify tracks can't be found on YouTube."
+            if track.spotify else Empty,
+            footer_icon_url=ctx.me.avatar if track.spotify else Empty
         )
         embed.add_field(name="Duration", value=length)
         embed.add_field(name="Requested by", value=ctx.author.mention)
