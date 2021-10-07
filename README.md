@@ -7,7 +7,7 @@ music bot made after rythm and groovy's takedown<br/>i am running an instance of
         - `playskip` - same as `playnext` but also skips the currently playing song
     - `playshuffle` - same as `play`, but adds the album/playlist to the queue in randomized order
 - `move` command - moves a track to another position in the queue.
-- `seek` command - seeks to a set position in the track (HH:MM:SS / MM:SS) or X seconds forward or back (+Xs / -Xs)
+- `seek` command - seeks to a set position in the track, see `a!help seek` for accepted formats
 - `shuffle` command - toggles shuffle on or off. when enabled, shuffles the queue which can be restored back to normal by disabling.
 - other basic commands - `queue`, `skip`, `remove`, `nowplaying`, `disconnect`
 
