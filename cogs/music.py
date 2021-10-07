@@ -20,6 +20,7 @@ from player import QueuePlayer as Player
 
 HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 MM_SS_RE = re.compile(r"(?P<m>\d{1,2}):(?P<s>\d{1,2})")
+HUMAN_RE = re.compile(r"(?:(?P<m>\d+)\s*m\s*)?(?P<s>\d+)\s*[sm]")
 OFFSET_RE = re.compile(r"(?P<s>(?:\-|\+)\d+)\s*s", re.IGNORECASE)
 URL_RE = re.compile(r"https?://(?:www\.)?.+")
 
@@ -502,10 +503,13 @@ class Music(Cog):
     @commands.command()
     async def seek(self, ctx: Context, *, time: str):
         """Seeks to a position in the track.
-           Accepted formats are HH:MM:SS, MM:SS, +Xs and -Xs, where X is the number of seconds.
+           Accepted formats are HH:MM:SS, MM:SS (or Mm Ss), +Xs and -Xs
+           where X is the number of seconds.
            For example:
                - seek 01:23:30
                - seek 00:32
+               - seek 2m 4s
+               - seek 50s
                - seek +30s
                - seek -23s
         """
@@ -528,6 +532,18 @@ class Music(Cog):
 
             position = player.position
             new_position = position + milliseconds
+        elif match := HUMAN_RE.fullmatch(time):
+            if m := match.group("m"):
+                if match.group("s") and time.endswith("m"):
+                    return await ctx.send(embed=ctx.embed(
+                        "Invalid time format!",
+                        f"See {ctx.prefix}help seek for accepted formats."
+                    ))
+                milliseconds += int(m) * 60000
+            if s := match.group("s"):
+                milliseconds += int(s) * 1000
+
+            new_position = milliseconds
         else:
             return await ctx.send(embed=ctx.embed(
                 "Invalid time format!",
