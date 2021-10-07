@@ -498,7 +498,7 @@ class Music(Cog):
     @commands.command()
     async def seek(self, ctx: Context, *, time: str):
         """Seeks to a position in the track.
-           Accepted formats are HH:MM:SS, MM:SS, Xs and -Xs, where X is the number of seconds.
+           Accepted formats are HH:MM:SS, MM:SS, +Xs and -Xs, where X is the number of seconds.
            For example:
                - seek 01:23:30
                - seek 00:32
