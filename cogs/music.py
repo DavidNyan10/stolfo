@@ -136,7 +136,7 @@ class Music(Cog):
             await player.disconnect(force=True)
 
     async def ensure_voice(self, ctx: Context):
-        should_connect = ctx.command.name in ("play",)
+        should_connect = ctx.command.name in ("play", "playnext", "playskip", "playshuffle")
 
         if not ctx.author.voice or not ctx.author.voice.channel:
             raise UserError("You're not connected to a voice channel!")
