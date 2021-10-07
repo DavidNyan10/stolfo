@@ -20,7 +20,7 @@ from player import QueuePlayer as Player
 
 HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 MM_SS_RE = re.compile(r"(?P<m>\d{1,2}):(?P<s>\d{1,2})")
-OFFSET_RE = re.compile(r"(?P<s>(?:\-|\+)\d+)s")
+OFFSET_RE = re.compile(r"(?P<s>(?:\-|\+)\d+)\s*s", re.IGNORECASE)
 URL_RE = re.compile(r"https?://(?:www\.)?.+")
 
 
