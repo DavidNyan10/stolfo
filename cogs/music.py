@@ -289,7 +289,7 @@ class Music(Cog):
         else:
             await player.stop()
 
-    @commands.command(aliases=["ps", "shuffleplay", "sp"])
+    @commands.command(aliases=["shuffleplay", "sp"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
     async def playshuffle(self, ctx: Context, *, query: str):
         """Adds the given album/playlist to the queue in random order."""
