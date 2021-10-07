@@ -20,7 +20,7 @@ from player import QueuePlayer as Player
 
 HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 MM_SS_RE = re.compile(r"(?P<m>\d{1,2}):(?P<s>\d{1,2})")
-OFFSET_RE = re.compile(r"(?P<s>\-?\d+)s")
+OFFSET_RE = re.compile(r"(?P<s>(?:\-|\+)\d+)s")
 URL_RE = re.compile(r"https?://(?:www\.)?.+")
 
 
@@ -502,7 +502,7 @@ class Music(Cog):
            For example:
                - seek 01:23:30
                - seek 00:32
-               - seek 30s
+               - seek +30s
                - seek -23s
         """
         player = ctx.voice_client
@@ -512,21 +512,25 @@ class Music(Cog):
             milliseconds += int(match.group("h")) * 3600000
             milliseconds += int(match.group("m")) * 60000
             milliseconds += int(match.group("s")) * 1000
+
+            new_position = milliseconds
         elif match := MM_SS_RE.fullmatch(time):
             milliseconds += int(match.group("m")) * 60000
             milliseconds += int(match.group("s")) * 1000
+
+            new_position = milliseconds
         elif match := OFFSET_RE.fullmatch(time):
             milliseconds += int(match.group("s")) * 1000
+
+            position = player.position
+            new_position = position + milliseconds
         else:
             return await ctx.send(embed=ctx.embed(
                 "Invalid time format!",
                 f"See {ctx.prefix}help seek for accepted formats."
             ))
 
-        position = player.position
-        new_position = position + milliseconds
         embed = ctx.embed(f"Seeked to {format_time(new_position)}.")
-
         await player.seek(new_position)
         await ctx.send(embed=embed)
 
