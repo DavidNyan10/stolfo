@@ -258,7 +258,7 @@ class Music(Cog):
             if player.shuffle:
                 player.shuffled_queue.put_at_front(track)
 
-            if not player.is_playing:
+            if player.is_playing:
                 await self.send_play_embed(ctx, search)
 
         if not player.is_playing:
@@ -316,7 +316,7 @@ class Music(Cog):
             if player.shuffle:
                 player.shuffled_queue.put(track)
 
-            if not player.is_playing:
+            if player.is_playing:
                 await self.send_play_embed(ctx, track)
 
         if not player.is_playing:
