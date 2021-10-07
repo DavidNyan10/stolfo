@@ -170,8 +170,12 @@ class Music(Cog):
 
     async def send_play_embed(self, ctx: Context, search: Union[Track, Playlist]):
         if isinstance(search, Playlist):
-            last_position = len(ctx.voice_client.queue)
-            first_position = last_position - search.track_count + 1
+            if ctx.command.name in ("playnext", "playskip"):
+                last_position = search.track_count
+                first_position = 1
+            else:
+                last_position = len(ctx.voice_client.queue)
+                first_position = last_position - search.track_count + 1
 
             word = "Shuffled" if ctx.command == self.playshuffle else "Queued"
 
@@ -191,6 +195,11 @@ class Music(Cog):
 
             embed.add_field(name="Position in queue", value=f"{first_position}-{last_position}")
         else:
+            if ctx.command.name in ("playnext", "playskip"):
+                queue_position = 1
+            else:
+                queue_position = len(ctx.voice_client.queue)
+
             if search.is_stream:
                 length = "🔴 Live"
             else:
@@ -202,7 +211,7 @@ class Music(Cog):
                 thumbnail_url=self.get_embed_thumbnail(search)
             )
             embed.add_field(name="Duration", value=length)
-            embed.add_field(name="Position in queue", value=len(ctx.voice_client.queue))
+            embed.add_field(name="Position in queue", value=queue_position)
 
         await ctx.send(embed=embed)
 
