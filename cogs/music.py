@@ -471,11 +471,15 @@ class Music(Cog):
         player = ctx.voice_client
         queue = player.queue if not player.shuffle else player.shuffled_queue
 
-        try:  # just silently returning on out of range input for now
+        if _from == _to:  # no need to do anything here
+            return
+
+        try:
             queue[_from - 1]
             queue[_to - 1]
         except IndexError:
-            return
+            embed = ctx.embed("Invalid queue position!", f"Valid positions are 1-{len(queue)}")
+            return await ctx.send(embed=embed)
 
         track = queue[_from - 1]
         del queue[_from - 1]
