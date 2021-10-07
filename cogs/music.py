@@ -18,7 +18,10 @@ from config import LOG_CHANNEL
 from context import Context
 from player import QueuePlayer as Player
 
-URL_RE = re.compile(r'https?://(?:www\.)?.+')
+HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
+MM_SS_RE = re.compile(r"(?P<m>\d{1,2}):(?P<s>\d{1,2})")
+OFFSET_RE = re.compile(r"(?P<s>\-?\d+)s")
+URL_RE = re.compile(r"https?://(?:www\.)?.+")
 
 
 def format_time(milliseconds: Union[float, int]) -> str:
@@ -483,6 +486,7 @@ class Music(Cog):
 
     @commands.command()
     async def shuffle(self, ctx: Context):
+        """Toggles shuffle. When enabled, the queue is shuffled and it's restored when disabled."""
         player = ctx.voice_client
         player.set_shuffle(not player.shuffle)
 
@@ -490,6 +494,41 @@ class Music(Cog):
         desc = f"Run the command again to restore the queue's order." if player.shuffle else Empty
 
         await ctx.send(embed=ctx.embed(f"{action} shuffle!", desc))
+
+    @commands.command()
+    async def seek(self, ctx: Context, *, time: str):
+        """Seeks to a position in the track.
+           Accepted formats are HH:MM:SS, MM:SS, Xs and -Xs, where X is the number of seconds.
+           For example:
+               - seek 01:23:30
+               - seek 00:32
+               - seek 30s
+               - seek -23s
+        """
+        player = ctx.voice_client
+        milliseconds = 0
+
+        if match := HH_MM_SS_RE.fullmatch(time):
+            milliseconds += int(match.group("h")) * 3600000
+            milliseconds += int(match.group("m")) * 60000
+            milliseconds += int(match.group("s")) * 1000
+        elif match := MM_SS_RE.fullmatch(time):
+            milliseconds += int(match.group("m")) * 60000
+            milliseconds += int(match.group("s")) * 1000
+        elif match := OFFSET_RE.fullmatch(time):
+            milliseconds += int(match.group("s")) * 1000
+        else:
+            return await ctx.send(embed=ctx.embed(
+                "Invalid time format!",
+                f"See {ctx.prefix}help seek for accepted formats."
+            ))
+
+        position = player.position
+        new_position = position + milliseconds
+        embed = ctx.embed(f"Seeked to {format_time(new_position)}.")
+
+        await player.seek(new_position)
+        await ctx.send(embed=embed)
 
 
 def setup(bot: Bot):
