@@ -177,7 +177,7 @@ class Music(Cog):
                 last_position = len(ctx.voice_client.queue)
                 first_position = last_position - search.track_count + 1
 
-            word = "Shuffled" if ctx.command == self.playshuffle else "Queued"
+            word = "Shuffled" if ctx.command.name == "playshuffle" else "Queued"
 
             embed = ctx.embed(
                 f"{word} {search.name} - {search.track_count} tracks",
