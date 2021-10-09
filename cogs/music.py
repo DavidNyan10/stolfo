@@ -88,7 +88,7 @@ class Music(Cog):
         if thumbnail := track.info.get("thumbnail"):
             return thumbnail
         elif any(i in track.uri for i in ("youtu.be", "youtube.com")):
-            return f"https://img.youtube.com/vi/{track.identifier}/hqdefault.jpg"
+            return f"https://img.youtube.com/vi/{track.identifier}/mqdefault.jpg"
         else:
             return Empty
 
