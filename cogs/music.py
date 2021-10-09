@@ -106,7 +106,7 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_pomice_track_start(self, event: TrackStartEvent):
-        track = event.player.current
+        track: Track = event.player.current.original
         ctx: Context = track.ctx
 
         if track.is_stream:
@@ -370,7 +370,7 @@ class Music(Cog):
 
         queue_items = self.format_queue(queue)
 
-        current = player.current
+        current = player.current.original
         if current.is_stream:
             current_pos = "stream"
         else:
@@ -401,7 +401,7 @@ class Music(Cog):
     async def nowplaying(self, ctx: Context):
         """Shows info about the currently playing track."""
         player = ctx.voice_client
-        track = player.current
+        track = player.current.original
 
         if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
