@@ -170,7 +170,7 @@ class Music(Cog):
         if not URL_RE.match(query):
             query = f"ytsearch:{query}"
 
-        return await ctx.voice_client.get_tracks(query, ctx)
+        return await ctx.voice_client.get_tracks(query, ctx=ctx)
 
     async def send_play_embed(self, ctx: Context, search: Union[Track, Playlist]):
         if isinstance(search, Playlist):
