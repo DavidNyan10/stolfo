@@ -22,7 +22,6 @@ HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 MM_SS_RE = re.compile(r"(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 HUMAN_RE = re.compile(r"(?:(?P<m>\d+)\s*m\s*)?(?P<s>\d+)\s*[sm]")
 OFFSET_RE = re.compile(r"(?P<s>(?:\-|\+)\d+)\s*s", re.IGNORECASE)
-URL_RE = re.compile(r"https?://(?:www\.)?.+")
 
 
 def format_time(milliseconds: Union[float, int]) -> str:
@@ -165,12 +164,7 @@ class Music(Cog):
                 raise UserError("You need to be in my voice channel to use this!")
 
     async def get_tracks(self, ctx: Context, query: str):
-        query = query.strip("<>")
-
-        if not URL_RE.match(query):
-            query = f"ytsearch:{query}"
-
-        return await ctx.voice_client.get_tracks(query, ctx=ctx)
+        return await ctx.voice_client.get_tracks(query.strip("<>"), ctx=ctx)
 
     async def send_play_command_embed(self, ctx: Context, search: Union[Track, Playlist]):
         if isinstance(search, Playlist):
