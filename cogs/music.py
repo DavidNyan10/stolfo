@@ -88,7 +88,7 @@ class Music(Cog):
         if thumbnail := track.info.get("thumbnail"):
             return thumbnail
         elif any(i in track.uri for i in ("youtu.be", "youtube.com")):
-            return f"https://img.youtube.com/vi/{track.identifier}/maxresdefault.jpg"
+            return f"https://img.youtube.com/vi/{track.identifier}/hqdefault.jpg"
         else:
             return Empty
 
@@ -172,7 +172,7 @@ class Music(Cog):
 
         return await ctx.voice_client.get_tracks(query, ctx=ctx)
 
-    async def send_play_embed(self, ctx: Context, search: Union[Track, Playlist]):
+    async def send_play_command_embed(self, ctx: Context, search: Union[Track, Playlist]):
         if isinstance(search, Playlist):
             if ctx.command.name in ("playnext", "playskip"):
                 last_position = search.track_count
@@ -186,7 +186,9 @@ class Music(Cog):
             embed = ctx.embed(
                 f"{word} {search.name} - {search.track_count} tracks",
                 url=search.uri if search.spotify else Empty,
-                thumbnail_url=search.thumbnail if search.spotify else Empty
+                thumbnail_url=search.thumbnail
+                if search.spotify
+                else self.get_embed_thumbnail(search)
             )
 
             if any(t.is_stream for t in search.tracks):
@@ -234,7 +236,7 @@ class Music(Cog):
                 if player.shuffle:
                     player.shuffled_queue.put(track)
 
-            await self.send_play_embed(ctx, search)
+            await self.send_play_command_embed(ctx, search)
         else:
             track = search[0]
 
@@ -243,7 +245,7 @@ class Music(Cog):
                 player.shuffled_queue.put(track)
 
             if player.is_playing:
-                await self.send_play_embed(ctx, track)
+                await self.send_play_command_embed(ctx, track)
 
         if not player.is_playing:
             await player.play(player.queue.get())
@@ -263,7 +265,7 @@ class Music(Cog):
                 if player.shuffle:
                     player.shuffled_queue.put_at_front(track)
 
-            await self.send_play_embed(ctx, search)
+            await self.send_play_command_embed(ctx, search)
         else:
             track = search[0]
 
@@ -272,7 +274,7 @@ class Music(Cog):
                 player.shuffled_queue.put_at_front(track)
 
             if player.is_playing:
-                await self.send_play_embed(ctx, track)
+                await self.send_play_command_embed(ctx, track)
 
         if not player.is_playing:
             await player.play(player.queue.get())
@@ -292,7 +294,7 @@ class Music(Cog):
                 if player.shuffle:
                     player.shuffled_queue.put_at_front(track)
 
-            await self.send_play_embed(ctx, search)
+            await self.send_play_command_embed(ctx, search)
         else:
             track = search[0]
 
@@ -321,7 +323,7 @@ class Music(Cog):
                 if player.shuffle:
                     player.shuffled_queue.put(track)
 
-            await self.send_play_embed(ctx, search)
+            await self.send_play_command_embed(ctx, search)
         else:
             track = search[0]
 
@@ -330,7 +332,7 @@ class Music(Cog):
                 player.shuffled_queue.put(track)
 
             if player.is_playing:
-                await self.send_play_embed(ctx, track)
+                await self.send_play_command_embed(ctx, track)
 
         if not player.is_playing:
             await player.play(player.queue.get())
