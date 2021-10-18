@@ -86,11 +86,9 @@ class Music(Cog):
                 await player.destroy()
             return
 
-        if player.is_playing and after.channel is not None:
+        if player.is_playing and after.channel is not None and before.channel != after.channel:
             paused = player.is_paused
             await player.set_pause(True)
-            await guild.change_voice_state(channel=after.channel)
-
             await asyncio.sleep(2)
             await player.set_pause(paused)
 
