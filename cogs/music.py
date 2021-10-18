@@ -88,7 +88,7 @@ class Music(Cog):
             await guild.change_voice_state(channel=after.channel)
 
             await player.set_pause(not paused)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
             await player.set_pause(paused)
 
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
