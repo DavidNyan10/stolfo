@@ -346,6 +346,31 @@ class Music(Cog):
         if not player.is_playing:
             await player.play(player.queue.get())
 
+    @commands.command()
+    async def pause(self, ctx: Context):
+        """Pauses the player if it's playing."""
+        player = ctx.voice_client
+
+        if player.is_paused:
+            return await ctx.send(embed=ctx.embed(
+                "Player already paused.",
+                "Use `{ctx.prefix}play` or `{ctx.prefix}resume` to resume playback."
+            ))
+
+        await player.set_pause(True)
+        await ctx.send(embed=ctx.embed("Player paused!"))
+
+    @commands.command(aliases=["unpause"])
+    async def resume(self, ctx: Context):
+        """Resumes playback if the player is paused."""
+        player = ctx.voice_client
+
+        if not player.is_paused:
+            return await ctx.send(embed=ctx.embed("Player is not paused."))
+
+        await player.set_pause(False)
+        await ctx.send(embed=ctx.embed("Player resumed!"))
+
     @commands.command(aliases=["dc", "stop", "leave", "begone", "fuckoff", "gtfo"])
     async def disconnect(self, ctx: Context):
         """Disconnects the player from its voice channel."""
