@@ -31,5 +31,6 @@ class QueuePlayer(Player):
         print(data)
 
     async def on_voice_state_update(self, data):
+        self._voice_state["event"].update(data)
         await super().on_voice_state_update(data)
-        print(data)
+        print(self._voice_state)
