@@ -80,8 +80,7 @@ class Music(Cog):
             player: Player = member.guild.voice_client
 
             player.queue.clear()
-            await player.stop()
-            await player.disconnect(force=True)
+            await player.destroy()
 
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
         if thumbnail := track.info.get("thumbnail"):
@@ -136,7 +135,7 @@ class Music(Cog):
                 else:
                     await player.play(await player.queue.get_wait())
         except asyncio.TimeoutError:
-            await player.disconnect(force=True)
+            await player.destroy()
 
     async def ensure_voice(self, ctx: Context):
         should_connect = ctx.command.name in ("play", "playnext", "playskip", "playshuffle")
@@ -338,8 +337,7 @@ class Music(Cog):
         channel_name = player.channel.name
 
         player.queue.clear()
-        await player.stop()
-        await player.disconnect(force=True)
+        await player.destroy()
 
         await ctx.send(embed=ctx.embed(f"Disconnected from {channel_name}!"))
 
