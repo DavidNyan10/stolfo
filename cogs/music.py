@@ -531,7 +531,7 @@ class Music(Cog):
                 if match.group("s") and time.lower().endswith("m"):
                     return await ctx.send(embed=ctx.embed(
                         "Invalid time format!",
-                        f"See {ctx.prefix}help seek for accepted formats."
+                        f"See `{ctx.prefix}help seek` for accepted formats."
                     ))
                 milliseconds += int(m) * 60000
             if s := match.group("s"):
@@ -544,7 +544,7 @@ class Music(Cog):
         else:
             return await ctx.send(embed=ctx.embed(
                 "Invalid time format!",
-                f"See {ctx.prefix}help seek for accepted formats."
+                f"See `{ctx.prefix}help seek` for accepted formats."
             ))
 
         embed = ctx.embed(f"Seeked to {format_time(new_position)}.")
