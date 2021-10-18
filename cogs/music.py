@@ -80,7 +80,8 @@ class Music(Cog):
         guild = member.guild
         player: Player = guild.voice_client
 
-        if not after.channel and player is not None:
+        if not after.channel:
+            player = self.bot.pomice.get_node().get_player(guild.id)
             player.queue.clear()
             await player.destroy()
         elif player.is_playing and after.channel is not None:
