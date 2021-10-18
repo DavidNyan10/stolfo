@@ -182,7 +182,7 @@ class Music(Cog):
                 url=search.uri if search.spotify else Empty,
                 thumbnail_url=search.thumbnail
                 if search.spotify
-                else self.get_embed_thumbnail(search)
+                else Empty
             )
 
             if any(t.is_stream for t in search.tracks):
