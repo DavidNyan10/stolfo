@@ -355,7 +355,7 @@ class Music(Cog):
         if player.is_paused:
             return await ctx.send(embed=ctx.embed(
                 "Player already paused.",
-                "Use `{ctx.prefix}play` or `{ctx.prefix}resume` to resume playback."
+                f"Use `{ctx.prefix}play` or `{ctx.prefix}resume` to resume playback."
             ))
 
         await player.set_pause(True)
