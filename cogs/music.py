@@ -247,7 +247,7 @@ class Music(Cog):
             return
 
         if not (search := await self.get_tracks(ctx, query)):
-            return await ctx.send("Nothing found.")
+            return await ctx.send(embed=ctx.embed("Nothing found."))
 
         if isinstance(search, Playlist):
             tracks = search.tracks
@@ -277,7 +277,7 @@ class Music(Cog):
         """Same as play command, but adds to the start of the queue."""
         player = ctx.voice_client
         if not (search := await self.get_tracks(ctx, query)):
-            return await ctx.send("Nothing found.")
+            return await ctx.send(embed=ctx.embed("Nothing found."))
 
         if isinstance(search, Playlist):
             tracks = search.tracks
@@ -307,7 +307,7 @@ class Music(Cog):
         """Same as playnext, but also skips the currently playing track."""
         player = ctx.voice_client
         if not (search := await self.get_tracks(ctx, query)):
-            return await ctx.send("Nothing found.")
+            return await ctx.send(embed=ctx.embed("Nothing found."))
 
         if isinstance(search, Playlist):
             tracks = search.tracks
@@ -336,7 +336,7 @@ class Music(Cog):
         """Adds the given album/playlist to the queue in random order."""
         player = ctx.voice_client
         if not (search := await self.get_tracks(ctx, query)):
-            return await ctx.send("Nothing found.")
+            return await ctx.send(embed=ctx.embed("Nothing found."))
 
         if isinstance(search, Playlist):
             tracks = search.tracks
