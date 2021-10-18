@@ -138,12 +138,22 @@ class Music(Cog):
         player: Player = event.player
         try:
             async with timeout(300):
-                if player.shuffle:
-                    track = await player.shuffled_queue.get_wait()
-                    await player.play(track)
-                    del player.queue[player.queue.find_position(track)]
-                else:
-                    await player.play(await player.queue.get_wait())
+                while player.queue:
+                    if player.shuffle:
+                        track = await player.shuffled_queue.get_wait()
+                        del player.queue[player.queue.find_position(track)]
+                    else:
+                        track = await player.queue.get_wait()
+
+                    try:
+                        await player.play(track)
+                        break
+                    except TypeError:
+                        if track.spotify:
+                            await track.ctx.send(embed=track.ctx.embed(
+                                f"No results found for Spotify track {track} - skipping."
+                            ))
+
         except asyncio.TimeoutError:
             await player.destroy()
 
@@ -236,7 +246,8 @@ class Music(Cog):
         elif not query:
             return
 
-        search = await self.get_tracks(ctx, query)
+        if not (search := await self.get_tracks(ctx, query)):
+            return await ctx.send("Nothing found.")
 
         if isinstance(search, Playlist):
             tracks = search.tracks
@@ -265,7 +276,8 @@ class Music(Cog):
     async def playnext(self, ctx: Context, *, query: str):
         """Same as play command, but adds to the start of the queue."""
         player = ctx.voice_client
-        search = await self.get_tracks(ctx, query)
+        if not (search := await self.get_tracks(ctx, query)):
+            return await ctx.send("Nothing found.")
 
         if isinstance(search, Playlist):
             tracks = search.tracks
@@ -294,7 +306,8 @@ class Music(Cog):
     async def playskip(self, ctx: Context, *, query: str):
         """Same as playnext, but also skips the currently playing track."""
         player = ctx.voice_client
-        search = await self.get_tracks(ctx, query)
+        if not (search := await self.get_tracks(ctx, query)):
+            return await ctx.send("Nothing found.")
 
         if isinstance(search, Playlist):
             tracks = search.tracks
@@ -322,7 +335,8 @@ class Music(Cog):
     async def playshuffle(self, ctx: Context, *, query: str):
         """Adds the given album/playlist to the queue in random order."""
         player = ctx.voice_client
-        search = await self.get_tracks(ctx, query)
+        if not (search := await self.get_tracks(ctx, query)):
+            return await ctx.send("Nothing found.")
 
         if isinstance(search, Playlist):
             tracks = search.tracks
