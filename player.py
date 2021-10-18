@@ -25,12 +25,3 @@ class QueuePlayer(Player):
             shuffle(self.shuffled_queue._queue)
         else:
             self.shuffled_queue = None
-
-    async def on_voice_server_update(self, data):
-        await super().on_voice_server_update(data)
-        print(data)
-
-    async def on_voice_state_update(self, data):
-        self._voice_state["event"].update(data)
-        await super().on_voice_state_update(data)
-        print(self._voice_state)
