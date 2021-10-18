@@ -566,6 +566,9 @@ class Music(Cog):
         player = ctx.voice_client
         milliseconds = 0
 
+        if not player.is_playing:
+            return await ctx.send(embed=ctx.embed("Nothing is playing!"))
+
         if match := HH_MM_SS_RE.fullmatch(time):
             milliseconds += int(match.group("h")) * 3600000
             milliseconds += int(match.group("m")) * 60000
@@ -603,6 +606,7 @@ class Music(Cog):
                 f"See `{ctx.prefix}help seek` for accepted formats."
             ))
 
+        new_position = max(0, min(new_position, player.current.length))
         embed = ctx.embed(f"Seeked to {format_time(new_position)}.")
         await player.seek(new_position)
         await ctx.send(embed=embed)
