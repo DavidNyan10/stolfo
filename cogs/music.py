@@ -74,13 +74,22 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState):
-        if member.id == self.bot.user.id \
-           and not after.channel \
-           and member.guild.voice_client is not None:
-            player: Player = member.guild.voice_client
+        if member.id != self.bot.user.id:
+            return
 
+        guild = member.guild
+        player: Player = guild.voice_client
+
+        if not after.channel and player is not None:
             player.queue.clear()
             await player.destroy()
+        elif player.is_playing and after.channel is not None:
+            paused = player.is_paused
+            await guild.change_voice_state(channel=after.channel)
+
+            await player.set_pause(not paused)
+            await asyncio.sleep(0.5)
+            await player.set_pause(paused)
 
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
         if thumbnail := track.info.get("thumbnail"):
@@ -216,9 +225,16 @@ class Music(Cog):
 
     @commands.command(aliases=["p"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
-    async def play(self, ctx: Context, *, query: str):
+    async def play(self, ctx: Context, *, query: str = None):
         """Queues one or multiple tracks. Can be used to resume the player if paused."""
         player = ctx.voice_client
+
+        if player.is_paused and not query:
+            await player.set_pause(False)
+            return await ctx.send(embed=ctx.embed("Resumed player!"))
+        elif not query:
+            return
+
         search = await self.get_tracks(ctx, query)
 
         if isinstance(search, Playlist):
