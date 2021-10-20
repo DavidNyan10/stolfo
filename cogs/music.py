@@ -10,13 +10,13 @@ from discord import Color, File, Member, VoiceState
 from discord.embeds import _EmptyEmbed, EmptyEmbed as Empty
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
-from pomice import Playlist, Track, TrackEndEvent, TrackStartEvent
-from wavelink import WaitQueue
+from pomice import Playlist, Track
 
 from bot import Bot
 from config import LOG_CHANNEL
 from context import Context
 from player import QueuePlayer as Player
+from queues import Queue
 
 HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 MM_SS_RE = re.compile(r"(?P<m>\d{1,2}):(?P<s>\d{1,2})")
@@ -100,7 +100,7 @@ class Music(Cog):
         else:
             return Empty
 
-    def format_queue(self, queue: WaitQueue) -> str:
+    def format_queue(self, queue: Queue) -> str:
         items = []
         for i, track in enumerate(queue):
             title = track.title if not track.spotify else f"{track.author} - {track.title}"
@@ -113,8 +113,7 @@ class Music(Cog):
         return items
 
     @Cog.listener()
-    async def on_pomice_track_start(self, event: TrackStartEvent):
-        track: Track = event.player.current.original
+    async def on_pomice_track_start(self, _, track: Track):
         ctx: Context = track.ctx
 
         if track.is_stream:
@@ -134,8 +133,7 @@ class Music(Cog):
         await ctx.send(embed=embed, delete_after=track.length / 1000)
 
     @Cog.listener()
-    async def on_pomice_track_end(self, event: TrackEndEvent):
-        player: Player = event.player
+    async def on_pomice_track_end(self, player: Player, track: Track, _):
         try:
             async with timeout(300):
                 while player.queue:
