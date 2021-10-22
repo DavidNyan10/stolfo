@@ -177,7 +177,9 @@ class Music(Cog):
 
             await ctx.author.voice.channel.connect(cls=Player)
         else:
-            if int(ctx.voice_client.channel.id) != ctx.author.voice.channel.id:
+            if not ctx.voice_client.channel:
+                await ctx.author.voice.channel.connect(cls=Player)
+            elif int(ctx.voice_client.channel.id) != ctx.author.voice.channel.id:
                 raise UserError("You need to be in my voice channel to use this!")
 
     async def get_tracks(self, ctx: Context, query: str):
