@@ -143,7 +143,7 @@ class Music(Cog):
                     next_track = await player.queue.get_wait()
 
                 try:
-                    await player.play(next_track)
+                    await player.play(next_track, ignore_if_playing=True)
                 except Exception as e:
                     if next_track.spotify and isinstance(e, TypeError):
                         await next_track.ctx.send(embed=next_track.ctx.embed(
