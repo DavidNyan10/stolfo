@@ -80,13 +80,6 @@ class Music(Cog):
         guild = member.guild
         player: Player = guild.voice_client
 
-        if not player:
-            player = self.bot.pomice.get_node().get_player(guild.id)
-
-        if after.channel is None and player is not None:
-            await player.destroy()
-            return
-
         if player is None:
             return
 
@@ -138,11 +131,6 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_pomice_track_end(self, player: Player, track: Track, _):
-        if not player.is_connected:
-            await track.ctx.send("test")
-            player.queue.clear()
-            return
-
         try:
             async with timeout(300):
                 if player.shuffle:
