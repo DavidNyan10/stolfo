@@ -406,6 +406,7 @@ class Music(Cog):
         if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
+        await player.current.ctx.message.delete()
         await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}", url=player.current.uri))
         await player.stop()
 
