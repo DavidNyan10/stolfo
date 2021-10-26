@@ -131,6 +131,7 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_pomice_track_end(self, player: Player, track: Track, _):
+        await track.ctx.send(player.current)
         try:
             async with timeout(300):
                 if player.shuffle:
