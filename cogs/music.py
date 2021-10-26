@@ -135,6 +135,10 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_pomice_track_end(self, player: Player, track: Track, _):
+        if not player.channel:
+            player.queue.clear()
+            return
+
         try:
             async with timeout(300):
                 if player.shuffle:
