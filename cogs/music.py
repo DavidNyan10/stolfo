@@ -131,7 +131,6 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_pomice_track_end(self, player: Player, track: Track, _):
-        await track.ctx.send(player.current)
         try:
             async with timeout(300):
                 if player.shuffle:
@@ -151,6 +150,7 @@ class Music(Cog):
                         await next_track.ctx.send(embed=next_track.ctx.embed(
                             f"Something went wrong while playing {next_track} - skipping."
                         ))
+                        print(e)
 
                     self.bot.dispatch("pomice_track_end", player, next_track, "error playing next")
 
