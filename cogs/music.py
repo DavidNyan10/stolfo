@@ -181,7 +181,7 @@ class Music(Cog):
 
             await ctx.author.voice.channel.connect(cls=Player)
         else:
-            if not ctx.voice_client.channel:
+            if should_connect and not ctx.voice_client.channel:
                 await ctx.author.voice.channel.connect(cls=Player)
             elif int(ctx.voice_client.channel.id) != ctx.author.voice.channel.id:
                 raise UserError("You need to be in my voice channel to use this!")
