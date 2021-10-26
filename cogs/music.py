@@ -127,7 +127,7 @@ class Music(Cog):
         embed.add_field(name="Duration", value=length)
         embed.add_field(name="Requested by", value=ctx.author.mention)
 
-        await ctx.send(embed=embed, delete_after=track.length / 1000)
+        track.np_message = await ctx.send(embed=embed, delete_after=track.length / 1000)
 
     @Cog.listener()
     async def on_pomice_track_end(self, player: Player, track: Track, _):
@@ -406,7 +406,7 @@ class Music(Cog):
         if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
-        await player.current.ctx.message.delete()
+        await player.current.np_message.delete()
         await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}", url=player.current.uri))
         await player.stop()
 
