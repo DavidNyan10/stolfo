@@ -87,6 +87,9 @@ class Music(Cog):
             await player.destroy()
             return
 
+        if player is None:
+            return
+
         if player.is_playing and after.channel is not None and before.channel != after.channel:
             paused = player.is_paused
             await player.set_pause(True)
@@ -135,7 +138,8 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_pomice_track_end(self, player: Player, track: Track, _):
-        if not player.channel:
+        if not player.is_connected:
+            await track.ctx.send("test")
             player.queue.clear()
             return
 
