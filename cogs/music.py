@@ -136,21 +136,25 @@ class Music(Cog):
     async def on_pomice_track_end(self, player: Player, track: Track, _):
         try:
             async with timeout(300):
-                while player.queue:
-                    if player.shuffle:
-                        track = await player.shuffled_queue.get_wait()
-                        del player.queue[player.queue.find_position(track)]
-                    else:
-                        track = await player.queue.get_wait()
+                if player.shuffle:
+                    next_track = await player.shuffled_queue.get_wait()
+                    del player.queue[player.queue.find_position(next_track)]
+                else:
+                    next_track = await player.queue.get_wait()
 
-                    try:
-                        await player.play(track)
-                        break
-                    except TypeError:
-                        if track.spotify:
-                            await track.ctx.send(embed=track.ctx.embed(
-                                f"No results found for Spotify track {track} - skipping."
-                            ))
+                try:
+                    await player.play(next_track)
+                except Exception as e:
+                    if next_track.spotify and isinstance(e, TypeError):
+                        await next_track.ctx.send(embed=next_track.ctx.embed(
+                            f"No results found for Spotify track {next_track} - skipping."
+                        ))
+                    else:
+                        await next_track.ctx.send(embed=next_track.ctx.embed(
+                            f"Something went wrong while playing {next_track} - skipping."
+                        ))
+
+                    self.bot.dispatch("pomice_track_end", player, next_track, "error playing next")
 
         except asyncio.TimeoutError:
             await player.destroy()
