@@ -82,14 +82,15 @@ class Music(Cog):
 
         if not player:
             player = self.bot.pomice.get_node().get_player(guild.id)
-            if after.channel is None and player is not None:
-                await player.destroy()
+
+        if after.channel is None and player is not None:
+            await player.destroy()
             return
 
         if player.is_playing and after.channel is not None and before.channel != after.channel:
             paused = player.is_paused
             await player.set_pause(True)
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
             await player.set_pause(paused)
 
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
