@@ -78,12 +78,14 @@ class Music(Cog):
             return
 
         guild = member.guild
-        player: Player = guild.voice_client
 
-        if player is None:
-            return
+        if (player := guild.voice_client) is None:
+            player = self.bot.pomice.get_node().get_player(guild.id)
 
-        if player.is_playing and after.channel is not None and before.channel != after.channel:
+        if not after.channel:
+            return await player.destroy()
+
+        if player.is_playing and before.channel != after.channel:
             paused = player.is_paused
             await player.set_pause(True)
             await asyncio.sleep(1)
