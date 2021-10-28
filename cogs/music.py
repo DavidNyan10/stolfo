@@ -83,7 +83,7 @@ class Music(Cog):
             player = self.bot.pomice.get_node().get_player(guild.id)
 
         if not after.channel:
-            return await player.destroy()
+            return
 
         if player.is_playing and before.channel != after.channel:
             paused = player.is_paused
