@@ -134,7 +134,7 @@ class Music(Cog):
 
         if track.spotify:
             embed.set_footer(
-                text=f"{ctx.prefix}np for full track information",
+                text=f"{ctx.prefix}np for YouTube track information",
                 icon_url=SPOTIFY_LOGO_URL
             )
         elif "youtube.com" in track.uri:
