@@ -23,6 +23,9 @@ MM_SS_RE = re.compile(r"(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 HUMAN_RE = re.compile(r"(?:(?P<m>\d+)\s*m\s*)?(?P<s>\d+)\s*[sm]")
 OFFSET_RE = re.compile(r"(?P<s>(?:\-|\+)\d+)\s*s", re.IGNORECASE)
 
+SPOTIFY_LOGO_URL = "https://cdn.veeps.moe/xKMKPU/spotify.png"
+YOUTUBE_LOGO_URL = "https://cdn.veeps.moe/PPZ97K/youtube.png"
+
 
 def format_time(milliseconds: Union[float, int]) -> str:
     hours, rem = divmod(int(milliseconds // 1000), 3600)
@@ -128,6 +131,14 @@ class Music(Cog):
         )
         embed.add_field(name="Duration", value=length)
         embed.add_field(name="Requested by", value=ctx.author.mention)
+
+        if track.spotify:
+            embed.set_footer(
+                text=f"{ctx.prefix}np for full track information",
+                icon_url=SPOTIFY_LOGO_URL
+            )
+        elif "youtube.com" in track.uri:
+            embed.set_footer(icon_url=YOUTUBE_LOGO_URL)
 
         track.np_message = await ctx.send(embed=embed)
 
@@ -482,6 +493,9 @@ class Music(Cog):
             embed.add_field(name="Uploader", value=track.author)
 
         embed.add_field(name="Requested by", value=track.ctx.author.mention)
+
+        if "youtube" in track.uri:
+            embed.set_footer(icon_url=YOUTUBE_LOGO_URL)
 
         await ctx.send(embed=embed)
 
