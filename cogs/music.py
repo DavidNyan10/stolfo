@@ -425,8 +425,9 @@ class Music(Cog):
         if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
+        title = player.current.title
         await player.stop()
-        await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}", url=player.current.uri))
+        await ctx.send(embed=ctx.embed(f"Skipped {title}", url=player.current.uri))
 
     @commands.command(aliases=["q", "next", "comingup"])
     async def queue(self, ctx: Context):
