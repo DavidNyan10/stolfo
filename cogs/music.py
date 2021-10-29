@@ -6,7 +6,7 @@ from traceback import format_exception
 from typing import Type, Union
 
 from async_timeout import timeout
-from discord import Color, File, Member, VoiceState
+from discord import Color, File, HTTPException, Member, VoiceState
 from discord.embeds import _EmptyEmbed, EmptyEmbed as Empty
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
@@ -82,7 +82,7 @@ class Music(Cog):
         if (player := guild.voice_client) is None:
             player = self.bot.pomice.get_node().get_player(guild.id)
 
-        if not after.channel:
+        if not after.channel and not player.is_dead:
             return await player.destroy()
 
         if player.is_playing and before.channel != after.channel:
@@ -118,7 +118,7 @@ class Music(Cog):
         if track.is_stream:
             length = "🔴 Live"
         else:
-            length = format_time(track.length)
+            length = format_time(track.original.length)
 
         title = track.title if not track.spotify else f"{track.author} - {track.title}"
         embed = ctx.embed(
@@ -129,10 +129,15 @@ class Music(Cog):
         embed.add_field(name="Duration", value=length)
         embed.add_field(name="Requested by", value=ctx.author.mention)
 
-        track.np_message = await ctx.send(embed=embed, delete_after=track.length / 1000)
+        track.np_message = await ctx.send(embed=embed)
 
     @Cog.listener()
     async def on_pomice_track_end(self, player: Player, track: Track, _):
+        try:
+            await track.np_message.delete()
+        except HTTPException:
+            pass
+
         try:
             async with timeout(300):
                 if player.shuffle:
@@ -155,9 +160,9 @@ class Music(Cog):
                         print(e)
 
                     self.bot.dispatch("pomice_track_end", player, next_track, "error playing next")
-
         except asyncio.TimeoutError:
-            await player.destroy()
+            if not player.is_dead:
+                await player.destroy()
 
     async def ensure_voice(self, ctx: Context):
         should_connect = ctx.command.name in ("play", "playnext", "playskip", "playshuffle")
@@ -182,7 +187,7 @@ class Music(Cog):
             await ctx.author.voice.channel.connect(cls=Player)
         else:
             if should_connect and not ctx.voice_client.channel:
-                await ctx.author.voice.channel.connect(cls=Player)
+                await ctx.author.voice.channel.connect(cls=ctx.voice_client)
             elif int(ctx.voice_client.channel.id) != ctx.author.voice.channel.id:
                 raise UserError("You need to be in my voice channel to use this!")
 
@@ -409,9 +414,8 @@ class Music(Cog):
         if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
-        await player.current.np_message.delete()
-        await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}", url=player.current.uri))
         await player.stop()
+        await ctx.send(embed=ctx.embed(f"Skipped {player.current.title}", url=player.current.uri))
 
     @commands.command(aliases=["q", "next", "comingup"])
     async def queue(self, ctx: Context):
