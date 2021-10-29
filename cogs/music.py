@@ -138,7 +138,7 @@ class Music(Cog):
                 icon_url=SPOTIFY_LOGO_URL
             )
         elif "youtube.com" in track.uri:
-            embed.set_footer(icon_url=YOUTUBE_LOGO_URL)
+            embed.set_footer(text="\u200b", icon_url=YOUTUBE_LOGO_URL)
 
         track.np_message = await ctx.send(embed=embed)
 
@@ -498,7 +498,7 @@ class Music(Cog):
         embed.add_field(name="Requested by", value=track.ctx.author.mention)
 
         if "youtube" in track.uri:
-            embed.set_footer(icon_url=YOUTUBE_LOGO_URL)
+            embed.set_footer(text="\u200b", icon_url=YOUTUBE_LOGO_URL)
 
         await ctx.send(embed=embed)
 
