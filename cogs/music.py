@@ -474,10 +474,11 @@ class Music(Cog):
     async def nowplaying(self, ctx: Context):
         """Shows info about the currently playing track."""
         player = ctx.voice_client
-        track = player.current.original
 
         if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
+
+        track = player.current.original
 
         if track.is_stream:
             position = "🔴 Live"
