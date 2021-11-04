@@ -81,9 +81,8 @@ class Music(Cog):
             return
 
         guild = member.guild
-
-        if (player := guild.voice_client) is None:
-            player = self.bot.pomice.get_node().get_player(guild.id)
+        if (player := self.bot.pomice.get_node().get_player(guild.id)) is None:
+            return
 
         if not after.channel and not player.is_dead:
             return await player.destroy()
@@ -115,8 +114,11 @@ class Music(Cog):
         return items
 
     @Cog.listener()
-    async def on_pomice_track_start(self, _, track: Track):
+    async def on_pomice_track_start(self, player: Player, track: Track):
         ctx: Context = track.ctx
+
+        if player.shuffle:
+            player.queue.history.put(track.original)
 
         if track.is_stream:
             length = "🔴 Live"
@@ -146,7 +148,7 @@ class Music(Cog):
     async def on_pomice_track_end(self, player: Player, track: Track, _):
         try:
             await track.np_message.delete()
-        except HTTPException:
+        except (HTTPException, AttributeError):
             pass
 
         try:
@@ -170,7 +172,7 @@ class Music(Cog):
                         ))
                         print(e)
 
-                    self.bot.dispatch("pomice_track_end", player, next_track, "error playing next")
+                    await self.on_pomice_track_end(player, next_track, "error playing next")
         except asyncio.TimeoutError:
             if not player.is_dead:
                 await player.destroy()
