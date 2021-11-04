@@ -314,7 +314,7 @@ class WaitQueue(Queue):
 
     def _get(self) -> Track:
         item = super()._get()
-        self.history.put(item.original)
+        self.history.put(item)
 
         return item
 
