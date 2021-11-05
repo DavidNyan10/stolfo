@@ -117,6 +117,9 @@ class Music(Cog):
     async def on_pomice_track_start(self, player: Player, track: Track):
         ctx: Context = track.ctx
 
+        if not player.has_started:
+            player.has_started = True
+
         if player.shuffle:
             player.queue.history.put(track.original)
 
@@ -290,7 +293,7 @@ class Music(Cog):
             if player.is_playing:
                 await self.send_play_command_embed(ctx, track)
 
-        if not player.is_playing:
+        if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
 
     @commands.command(aliases=["pn", "playtop", "pt"])
@@ -347,8 +350,10 @@ class Music(Cog):
             if player.shuffle:
                 player.shuffled_queue.put_at_front(track)
 
-        if not player.is_playing:
+        if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
+        elif not player.is_playing:
+            pass
         else:
             await player.stop()
 
@@ -380,7 +385,7 @@ class Music(Cog):
             if player.is_playing:
                 await self.send_play_command_embed(ctx, track)
 
-        if not player.is_playing:
+        if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
 
     @commands.command()
