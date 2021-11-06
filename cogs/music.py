@@ -174,7 +174,9 @@ class Music(Cog):
 
                     await self.on_pomice_track_end(player, next_track, "error playing next")
         except asyncio.TimeoutError:
+            player = self.bot.pomice.get_node().get_player(player.guild.id)
             if not player.is_dead and not player.is_playing:
+                await track.ctx.send(f"debug: {player.guild.id=} / {track.title=}")
                 await player.destroy()
 
     async def ensure_voice(self, ctx: Context):
