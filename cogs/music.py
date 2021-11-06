@@ -294,6 +294,7 @@ class Music(Cog):
 
         if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
+            player.has_started = True
 
     @commands.command(aliases=["pn", "playtop", "pt"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
@@ -324,6 +325,7 @@ class Music(Cog):
 
         if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
+            player.has_started = True
 
     @commands.command(aliases=["ps"])
     @commands.max_concurrency(1, commands.BucketType.guild, wait=True)
@@ -351,6 +353,7 @@ class Music(Cog):
 
         if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
+            player.has_started = True
         elif not player.is_playing:
             pass
         else:
@@ -386,6 +389,7 @@ class Music(Cog):
 
         if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
+            player.has_started = True
 
     @commands.command()
     async def pause(self, ctx: Context):
