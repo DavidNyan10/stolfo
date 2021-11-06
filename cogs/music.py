@@ -85,6 +85,8 @@ class Music(Cog):
             return
 
         if not after.channel and not player.is_dead:
+            if player.current:
+                await player.current.ctx.send(f"debug: {member=} / {before=} / {after=}")
             return await player.destroy()
 
         if player.is_playing and before.channel != after.channel:
@@ -174,9 +176,7 @@ class Music(Cog):
 
                     await self.on_pomice_track_end(player, next_track, "error playing next")
         except asyncio.TimeoutError:
-            player = self.bot.pomice.get_node().get_player(player.guild.id)
             if not player.is_dead and not player.is_playing:
-                await track.ctx.send(f"debug: {player.guild.id=} / {track.title=}")
                 await player.destroy()
 
     async def ensure_voice(self, ctx: Context):
@@ -292,7 +292,7 @@ class Music(Cog):
             if player.is_playing:
                 await self.send_play_command_embed(ctx, track)
 
-        if not player.is_playing:
+        if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
 
     @commands.command(aliases=["pn", "playtop", "pt"])
@@ -322,7 +322,7 @@ class Music(Cog):
             if player.is_playing:
                 await self.send_play_command_embed(ctx, track)
 
-        if not player.is_playing:
+        if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
 
     @commands.command(aliases=["ps"])
@@ -349,7 +349,7 @@ class Music(Cog):
             if player.shuffle:
                 player.shuffled_queue.put_at_front(track)
 
-        if not player.is_playing:
+        if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
         elif not player.is_playing:
             pass
@@ -384,7 +384,7 @@ class Music(Cog):
             if player.is_playing:
                 await self.send_play_command_embed(ctx, track)
 
-        if not player.is_playing:
+        if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
 
     @commands.command()

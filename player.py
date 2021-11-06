@@ -16,6 +16,8 @@ class QueuePlayer(Player):
         self.shuffled_queue = None
         self.queue = WaitQueue()
 
+        self.has_started = False
+
     def set_shuffle(self, state: bool):
         self.shuffle = state
 
