@@ -1,7 +1,7 @@
 from datetime import datetime
 from os import listdir, path
 
-from discord import ClientUser, Game, Intents, Message, Status, VoiceRegion
+from discord import ClientUser, Game, Intents, Message, Status
 from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
 from pomice import Node, NodePool
@@ -26,9 +26,6 @@ class Bot(commands.Bot):
 
         self.user: ClientUser
         self.start_time = datetime.utcnow()
-
-        # set presence
-        await self.change_presence(activity=Game("nya | a!help"), status=Status.dnd)
 
         await self.pomice.create_node(
             bot=self,
@@ -63,7 +60,11 @@ class Bot(commands.Bot):
 
 
 def main():
-    bot = Bot(command_prefix=when_mentioned_or("a!"), intents=Intents.all())
+    bot = Bot(
+        command_prefix=when_mentioned_or("a!"),
+        intents=Intents.all(),
+        activity=Game("nya | a!help"), status=Status.dnd
+    )
     bot.run(TOKEN)
 
 

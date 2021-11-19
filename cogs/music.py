@@ -3,10 +3,10 @@ import random
 import re
 from io import StringIO
 from traceback import format_exception
-from typing import Type, Union
+from typing import Optional, Type, Union
 
 from async_timeout import timeout
-from discord import Color, File, HTTPException, Member, VoiceState
+from discord import Color, File, HTTPException, Member, utils as dutils, VoiceState
 from discord.embeds import _EmptyEmbed, EmptyEmbed as Empty
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
@@ -44,9 +44,51 @@ class Music(Cog):
         self.bot = bot
 
     async def cog_before_invoke(self, ctx: Context):
-        if (is_guild := ctx.guild is not None):
-            await self.ensure_voice(ctx)
-        return is_guild
+        if ctx.guild is not None:
+            return await self.ensure_voice(ctx)
+        raise UserError("Music commands are disabled in DMs.")
+
+    async def ensure_voice(self, ctx: Context):
+        should_connect = ctx.command.name in ("play", "playnext", "playskip", "playshuffle")
+
+        if not ctx.author.voice or not ctx.author.voice.channel:
+            raise UserError("You're not connected to a voice channel!")
+
+        channel = ctx.author.voice.channel
+
+        if not ctx.voice_client:
+            if not should_connect:
+                raise UserError("I'm not connected to a voice channel!")
+
+            permissions = channel.permissions_for(ctx.me)
+
+            if not permissions.connect:
+                raise UserError(
+                    "I'm missing permissions to connect to your voice channel!"
+                )
+
+            if not permissions.speak:
+                raise UserError("I'm missing permissions to speak in your voice channel!")
+
+            await channel.connect(cls=Player)
+            ctx.voice_client.bound_channel = ctx.channel  # type: ignore
+            await ctx.send(embed=ctx.embed(
+                f"Connected to {channel.name}!",
+                f"Music commands are bound to {ctx.channel.mention}."
+            ))
+        else:
+            if should_connect and not ctx.voice_client.channel:
+                await channel.connect(cls=ctx.voice_client)
+                ctx.voice_client.bound_channel = ctx.channel
+                await ctx.send(embed=ctx.embed(
+                    f"Connected to {channel.name}!",
+                    f"Music commands are bound to {ctx.channel.mention}."
+                ))
+            elif int(ctx.voice_client.channel.id) != channel.id:
+                raise UserError("You need to be in my voice channel to use this!")
+            elif ctx.voice_client.bound_channel and ctx.channel != ctx.voice_client.bound_channel:
+                bound_channel = ctx.voice_client.bound_channel
+                raise UserError(f"Music commands are currently bound to #{bound_channel.name}.")
 
     async def cog_command_error(self, ctx: Context, error: Type[CommandError]):
         if isinstance(error, UserError):
@@ -94,26 +136,6 @@ class Music(Cog):
             await player.set_pause(True)
             await asyncio.sleep(1)
             await player.set_pause(paused)
-
-    def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
-        if thumbnail := track.info.get("thumbnail"):
-            return thumbnail
-        elif any(i in track.uri for i in ("youtu.be", "youtube.com")):
-            return f"https://img.youtube.com/vi/{track.identifier}/mqdefault.jpg"
-        else:
-            return Empty
-
-    def format_queue(self, queue: Queue) -> str:
-        items = []
-        for i, track in enumerate(queue):
-            title = track.title if not track.spotify else f"{track.author} - {track.title}"
-            items.append(
-                f"**{i + 1}: [{title}]({track.uri}) **"
-                f"[{'stream' if track.is_stream else format_time(track.length)}] "
-                f"({track.ctx.author.mention})"
-            )
-
-        return items
 
     @Cog.listener()
     async def on_pomice_track_start(self, player: Player, track: Track):
@@ -179,32 +201,25 @@ class Music(Cog):
             if not player.is_dead and not player.is_playing:
                 await player.destroy()
 
-    async def ensure_voice(self, ctx: Context):
-        should_connect = ctx.command.name in ("play", "playnext", "playskip", "playshuffle")
-
-        if not ctx.author.voice or not ctx.author.voice.channel:
-            raise UserError("You're not connected to a voice channel!")
-
-        if not ctx.voice_client:
-            if not should_connect:
-                raise UserError("I'm not connected to a voice channel!")
-
-            permissions = ctx.author.voice.channel.permissions_for(ctx.me)
-
-            if not permissions.connect:
-                raise UserError(
-                    "I'm missing permissions to connect to your voice channel!"
-                )
-
-            if not permissions.speak:
-                raise UserError("I'm missing permissions to speak in your voice channel!")
-
-            await ctx.author.voice.channel.connect(cls=Player)
+    def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
+        if thumbnail := track.info.get("thumbnail"):
+            return thumbnail
+        elif any(i in track.uri for i in ("youtu.be", "youtube.com")):
+            return f"https://img.youtube.com/vi/{track.identifier}/mqdefault.jpg"
         else:
-            if should_connect and not ctx.voice_client.channel:
-                await ctx.author.voice.channel.connect(cls=ctx.voice_client)
-            elif int(ctx.voice_client.channel.id) != ctx.author.voice.channel.id:
-                raise UserError("You need to be in my voice channel to use this!")
+            return Empty
+
+    def format_queue(self, queue: Queue) -> str:
+        items = []
+        for i, track in enumerate(queue):
+            title = track.title if not track.spotify else f"{track.author} - {track.title}"
+            items.append(
+                f"**{i + 1}: [{title}]({track.uri}) **"
+                f"[{'stream' if track.is_stream else format_time(track.length)}] "
+                f"({track.ctx.author.mention})"
+            )
+
+        return items
 
     async def get_tracks(self, ctx: Context, query: str):
         return await ctx.voice_client.get_tracks(query.strip("<>"), ctx=ctx)
