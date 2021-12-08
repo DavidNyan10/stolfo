@@ -228,7 +228,7 @@ class Music(Cog):
 
         # patch youtube.com/shorts links to their video counterparts
         if YT_SHORTS_RE.match(query):
-            query = YT_SHORTS_RE.sub(f"https://youtube.com/watch?v=\1")
+            query = YT_SHORTS_RE.sub(f"https://youtube.com/watch?v=\1", query)
 
         return await ctx.voice_client.get_tracks(query, ctx=ctx)
 
