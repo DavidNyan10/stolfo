@@ -129,8 +129,6 @@ class Music(Cog):
             return
 
         if not after.channel and not player.is_dead:
-            if player.current:
-                await player.current.ctx.send(f"debug: {member=} / {before=} / {after=}")
             return await player.destroy()
 
         if player.is_playing and before.channel != after.channel:
