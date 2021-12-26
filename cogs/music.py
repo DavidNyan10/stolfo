@@ -546,7 +546,7 @@ class Music(Cog):
         player.queue.clear()
         await ctx.send(embed=ctx.embed(f"Cleared {amount} song{'' if amount == 1 else 's'}!"))
 
-    @commands.command(aliases=["r"])
+    @commands.command(aliases=["r", "rm"])
     async def remove(self, ctx: Context, index: int):
         """Removes a song from the player's queue."""
         player = ctx.voice_client
