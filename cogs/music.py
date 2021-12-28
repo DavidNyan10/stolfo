@@ -72,7 +72,7 @@ class Music(Cog):
             if not permissions.speak:
                 raise UserError("I'm missing permissions to speak in your voice channel!")
 
-            await channel.connect(cls=Player)
+            await channel.connect(cls=Player(self.bot, channel))
             ctx.voice_client.bound_channel = ctx.channel  # type: ignore
             await ctx.send(embed=ctx.embed(
                 f"Connected to {channel.name}!",
