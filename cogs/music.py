@@ -6,7 +6,7 @@ from traceback import format_exception
 from typing import Optional, Type, Union
 
 from async_timeout import timeout
-from discord import Color, File, HTTPException, Member, utils as dutils, VoiceState
+from discord import Color, File, HTTPException, Member, VoiceState
 from discord.embeds import _EmptyEmbed, EmptyEmbed as Empty
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
@@ -72,7 +72,7 @@ class Music(Cog):
             if not permissions.speak:
                 raise UserError("I'm missing permissions to speak in your voice channel!")
 
-            await channel.connect(cls=Player(self.bot, channel))
+            await channel.connect(cls=Player)
             ctx.voice_client.bound_channel = ctx.channel  # type: ignore
             await ctx.send(embed=ctx.embed(
                 f"Connected to {channel.name}!",
