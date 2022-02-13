@@ -24,6 +24,7 @@ HUMAN_RE = re.compile(r"(?:(?P<m>\d+)\s*m\s*)?(?P<s>\d+)\s*[sm]")
 OFFSET_RE = re.compile(r"(?P<s>(?:\-|\+)\d+)\s*s", re.IGNORECASE)
 
 YT_SHORTS_RE = re.compile(r"(?:https?://)?(?:www)?youtube\.com/shorts/([^\n\r?&]+).*?$")
+YT_SHORTS_RE = re.compile(r"(?:https?://)?(?:www)?youtube\.com/shorts/([^\n\r?&/]+).*?$")
 
 SPOTIFY_LOGO_URL = "https://cdn.veeps.moe/xKMKPU/spotify.png"
 YOUTUBE_LOGO_URL = "https://cdn.veeps.moe/PPZ97K/youtube.png"
@@ -227,6 +228,7 @@ class Music(Cog):
         # patch youtube.com/shorts links to their video counterparts
         if YT_SHORTS_RE.match(query):
             query = YT_SHORTS_RE.sub(r"https://youtube.com/watch?v=\1", query)
+            await ctx.send(query)
 
         return await ctx.voice_client.get_tracks(query, ctx=ctx)
 
