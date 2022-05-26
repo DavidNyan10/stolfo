@@ -17,7 +17,7 @@ from bot import Bot
 from config import LOG_CHANNEL
 from context import Context
 from player import QueuePlayer as Player
-from tracks import Track, YouTubePlaylist, YouTubeTrack
+from tracks import PartialTrack, Track, YouTubePlaylist, YouTubeTrack
 
 
 HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
@@ -139,8 +139,7 @@ class Music(Cog):
             await asyncio.sleep(1)
             await player.set_pause(paused)
 
-    @Cog.listener()
-    async def on_wavelink_track_start(self, player: Player, track: Track):
+    async def fake_on_wavelink_track_start(self, player: Player, track: Track):
         ctx = track.ctx
         if player.shuffle:
             player.queue.history.put(track)
@@ -180,7 +179,11 @@ class Music(Cog):
                     next_track = await player.queue.get_wait()
 
                 try:
+                    if isinstance(next_track, PartialTrack):
+                        next_track = await next_track._search()
+
                     await player.play(next_track, replace=False)
+                    await self.fake_on_wavelink_track_start(player, next_track)
                 except Exception as e:
                     if isinstance(next_track, spotify.PartialSpotifyTrack) \
                        and isinstance(e, IndexError):
