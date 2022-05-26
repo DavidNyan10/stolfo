@@ -242,30 +242,35 @@ class Music(Cog):
         self,
         ctx:
         Context,
-        search: Union[spotify.SpotifyAsyncIterator, Track, YouTubePlaylist]
+        search: Union[spotify.SpotifyAsyncIterator, Track, YouTubePlaylist],
+        *,
+        tracks: Optional[list[Track]]
     ):
         assert ctx.command is not None
         if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
-            tracks = (
-                search.tracks if isinstance(search, YouTubePlaylist) else [t async for t in search]
-            )
+            _tracks = tracks if isinstance(
+                search, spotify.SpotifyAsyncIterator
+            ) else search.tracks
+
+            assert _tracks is not None
+
             if ctx.command.name in ("playnext", "playskip"):
-                last_position = len(tracks)
+                last_position = len(_tracks)
                 first_position = 1
             else:
                 last_position = len(ctx.voice_client.queue)
-                first_position = last_position - len(tracks) + 1
+                first_position = last_position - len(_tracks) + 1
 
             word = "Shuffled" if ctx.command.name == "playshuffle" else "Queued"
 
             embed = ctx.embed(
-                f"{word} {search.name} - {len(tracks)} tracks",
+                f"{word} {search.name} - {len(_tracks)} tracks",
                 url=getattr(search, "uri", None),
                 thumbnail_url=getattr(search, "thumbnail", None)
             )
 
             if isinstance(search, YouTubePlaylist) and any(t.is_stream() for t in search.tracks):
-                embed.add_field(name="# of tracks", value=len(tracks))
+                embed.add_field(name="# of tracks", value=len(_tracks))
             else:
                 if isinstance(search, YouTubePlaylist):
                     length = sum(t.length for t in search.tracks) * 1000
@@ -325,7 +330,7 @@ class Music(Cog):
                     assert player.shuffled_queue is not None
                     player.shuffled_queue.put(track)
 
-            await self.send_play_command_embed(ctx, search)
+            await self.send_play_command_embed(ctx, search, tracks=tracks)
         else:
             track = search
 
@@ -367,7 +372,7 @@ class Music(Cog):
                     assert player.shuffled_queue is not None
                     player.shuffled_queue.put_at_front(track)
 
-            await self.send_play_command_embed(ctx, search)
+            await self.send_play_command_embed(ctx, search, tracks=tracks)
         else:
             track = search
 
@@ -409,7 +414,7 @@ class Music(Cog):
                     assert player.shuffled_queue is not None
                     player.shuffled_queue.put_at_front(track)
 
-            await self.send_play_command_embed(ctx, search)
+            await self.send_play_command_embed(ctx, search, tracks=tracks)
         else:
             track = search
 
@@ -453,7 +458,7 @@ class Music(Cog):
                     assert player.shuffled_queue is not None
                     player.shuffled_queue.put(track)
 
-            await self.send_play_command_embed(ctx, search)
+            await self.send_play_command_embed(ctx, search, tracks=tracks)
         else:
             track = search
 
