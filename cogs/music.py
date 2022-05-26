@@ -215,7 +215,7 @@ class Music(Cog):
         for i, track in enumerate(queue):
             items.append(
                 f"**{i + 1}: [{track.title}]({track.uri}) **"
-                f"[{'stream' if track.is_stream else format_time(track.length * 1000)}] "
+                f"[{'stream' if track.is_stream() else format_time(track.length * 1000)}] "
                 f"({track.ctx.author.mention})"
             )
 
