@@ -100,8 +100,8 @@ class YouTubePlaylist(_YouTubePlaylist, SearchableTrack):
 
 
 class PartialTrack(_PartialTrack):
-    def __init__(self, *args, ctx: Context, **kwargs):
-        self.ctx = ctx
+    def __init__(self, *args, **kwargs):
+        self.ctx = None
         super().__init__(*args, **kwargs)
         self._cls = YouTubeTrack
 
