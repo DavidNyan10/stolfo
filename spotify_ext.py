@@ -26,7 +26,7 @@ from typing import List, Optional, Type, TypeVar, Union
 
 import aiohttp
 from discord.ext import commands
-from wavelink import Node
+from wavelink import Node, NodePool
 from wavelink.utils import MISSING
 
 from context import Context
