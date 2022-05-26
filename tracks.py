@@ -19,8 +19,8 @@ ST = TypeVar("ST", bound="SearchableTrack")
 
 
 class Track(_Track):
-    def __init__(self, *args, ctx: Context, **kwargs):
-        self.ctx = ctx
+    def __init__(self, *args, **kwargs):
+        self.ctx: Optional[Context] = None
         super().__init__(*args, **kwargs)
 
 
