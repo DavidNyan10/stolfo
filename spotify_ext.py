@@ -158,7 +158,9 @@ class SpotifyAsyncIterator:
             return await self.__anext__()
 
         if self._partial:
-            track = PartialSpotifyTrack(track, ctx=self._ctx)
+            track = PartialSpotifyTrack(
+                track, ctx=self._ctx, data["images"][0]["url"] if data["type"] == "album" else None
+            )
         else:
             track = await YouTubeTrack.search(query=f'{track["name"]} -'
                                                     f' {track["artists"][0]["name"]}',

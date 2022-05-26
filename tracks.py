@@ -116,11 +116,11 @@ class PartialTrack(_PartialTrack):
 
 
 class PartialSpotifyTrack(PartialTrack):
-    def __init__(self, data, ctx: Context):
+    def __init__(self, data, ctx: Context, thumbnail: Optional[str] = None):
         self.title = data["name"]
         self.author = ", ".join(i["name"] for i in data["artists"])
         self.length = data["duration_ms"] / 1000
-        self.thumbnail = data["album"]["images"][0]["url"]
+        self.thumbnail = thumbnail or data["album"]["images"][0]["url"]
         self.uri = data["external_urls"].get("spotify")
         super().__init__(
             query=f"{', '.join([i['name'] for i in data['artists']])} - {data['name']}",
