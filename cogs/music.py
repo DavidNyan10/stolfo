@@ -555,7 +555,7 @@ class Music(Cog):
         )
 
         q_length = f"{len(queue)} track{'' if len(queue) == 1 else 's'}"
-        if any(t.is_stream() for t in queue):  # type: ignore
+        if any(hasattr(t, "is_stream") and t.is_stream() for t in queue):  # type: ignore
             q_duration = ""
         else:
             total = format_time(
