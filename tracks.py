@@ -86,7 +86,7 @@ class YouTubeTrack(SearchableTrack, _YoutubeTrack):
 class YouTubePlaylist(_YouTubePlaylist, SearchableTrack):
     _search_type: ClassVar[str] = "ytpl"
 
-    def __init__(self, data: dict, ctx: Context):
+    def __init__(self, data: dict):
         self.tracks: list[YouTubeTrack] = []
         self.name: str = data["playlistInfo"]["name"]
 
@@ -100,8 +100,8 @@ class YouTubePlaylist(_YouTubePlaylist, SearchableTrack):
 
 
 class PartialTrack(_PartialTrack):
-    def __init__(self, *args, **kwargs):
-        self.ctx = None
+    def __init__(self, *args, ctx: Context, **kwargs):
+        self.ctx = ctx
         super().__init__(*args, **kwargs)
         self._cls = YouTubeTrack
 
