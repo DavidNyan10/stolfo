@@ -103,6 +103,16 @@ class PartialTrack(_PartialTrack):
     def __init__(self, *args, ctx: Context, **kwargs):
         self.ctx = ctx
         super().__init__(*args, **kwargs)
+        self._cls = YouTubeTrack
+
+    async def _search(self):
+        node = self._node
+        if node is MISSING:
+            node = NodePool.get_node()
+
+        tracks = await self._cls.search(query=self.query, node=node, ctx=self.ctx)
+
+        return tracks[0]  # type: ignore
 
 
 class PartialSpotifyTrack(PartialTrack):
