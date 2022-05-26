@@ -111,5 +111,6 @@ class PartialSpotifyTrack(PartialTrack):
         self.uri = data["external_urls"].get("spotify")
         super().__init__(
             query=f"{', '.join([i['name'] for i in data['artists']])} - {data['name']}",
-            ctx=ctx
+            cls=YouTubeTrack,
+            ctx=ctx,
         )
