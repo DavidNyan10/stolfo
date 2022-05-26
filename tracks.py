@@ -30,7 +30,7 @@ class SearchableTrack(_SearchableTrack, Track):
         cls: Type[ST],
         query: str,
         *,
-        type: Optional[spotify.SpotifySearchType] = None,
+        type=None,
         node: Node = MISSING,
         return_first: bool = False
     ) -> Union[Optional[ST], list[ST]]:

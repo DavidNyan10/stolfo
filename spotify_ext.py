@@ -27,7 +27,7 @@ from typing import List, Optional, Type, TypeVar, Union
 import aiohttp
 import wavelink
 from discord.ext import commands
-from wavelink import Node, NodePool, PartialTrack, SearchableTrack, YouTubeTrack
+from wavelink import Node, NodePool, SearchableTrack, YouTubeTrack
 from wavelink.utils import MISSING
 
 from tracks import PartialSpotifyTrack
