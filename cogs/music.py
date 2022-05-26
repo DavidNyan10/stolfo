@@ -236,7 +236,7 @@ class Music(Cog):
                 ]
             else:
                 raise UserError("Only Spotify tracks, albums, and playlists are supported.")
-        return await YouTubeTrack.search(query, return_first=False)  # type: ignore
+        return await YouTubeTrack.search(query, return_first=False, ctx=ctx)  # type: ignore
 
     async def send_play_command_embed(self, ctx: Context, search: Union[Track, YouTubePlaylist]):
         assert ctx.command is not None

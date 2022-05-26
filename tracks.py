@@ -58,7 +58,8 @@ class SearchableTrack(_SearchableTrack, Track):
 
         check = yarl.URL(query)
 
-        if str(check.host) == 'youtube.com' or str(check.host) == 'www.youtube.com' and check.query.get("list"):
+        if str(check.host) == 'youtube.com' or str(check.host) == 'www.youtube.com' and check.query.get("list") or \
+                cls._search_type == 'ytpl':
             tracks = await node.get_playlist(cls=YouTubePlaylist, identifier=query)
         elif cls._search_type == 'local':
             tracks = await node.get_tracks(cls, query)
@@ -71,11 +72,11 @@ class SearchableTrack(_SearchableTrack, Track):
         return tracks
 
 
-class YouTubeTrack(SearchableTrack, _YoutubeTrack):
+class YouTubeTrack(_YoutubeTrack, SearchableTrack):
     _search_type: ClassVar[str] = "ytsearch"
 
     async def search(self, *args, ctx: Context, **kwargs):
-        tracks = await super().search(*args, ctx=ctx, **kwargs)
+        tracks = await super().search(*args, **kwargs)
 
         if tracks is None:
             return
