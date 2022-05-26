@@ -141,6 +141,7 @@ class Music(Cog):
 
     async def fake_on_wavelink_track_start(self, player: Player, track: Track):
         ctx = track.ctx
+        await ctx.send("????")
         if player.shuffle:
             player.queue.history.put(track)
 
