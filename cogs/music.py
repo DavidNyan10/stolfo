@@ -17,7 +17,7 @@ from bot import Bot
 from config import LOG_CHANNEL
 from context import Context
 from player import QueuePlayer as Player
-from tracks import SearchableTrack, Track, YouTubePlaylist
+from tracks import Track, YouTubePlaylist, YouTubeTrack
 
 
 HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
@@ -236,7 +236,7 @@ class Music(Cog):
                 ]
             else:
                 raise UserError("Only Spotify tracks, albums, and playlists are supported.")
-        return await SearchableTrack.search(query, return_first=False)  # type: ignore
+        return await YouTubeTrack.search(query, return_first=False)  # type: ignore
 
     async def send_play_command_embed(self, ctx: Context, search: Union[Track, YouTubePlaylist]):
         assert ctx.command is not None
