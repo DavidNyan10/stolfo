@@ -128,7 +128,7 @@ class SpotifyAsyncIterator:
         return self
 
     async def fill_queue(self):
-        tracks, data = await self._node._spotify._search(query=self._query, iterator=True, type=self._type)
+        tracks, data = await self._node._spotify._search(query=self._query, iterator=True, type=self._type, ctx=self._ctx)
 
         self.name = data["name"]
         self.thumbnail = data["images"][0]["url"] if data["images"] else None
