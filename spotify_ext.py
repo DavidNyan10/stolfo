@@ -133,7 +133,10 @@ class SpotifyAsyncIterator:
         self.name = data["name"]
         self.thumbnail = data["images"][0]["url"] if data["images"] else None
         self.uri = data["external_urls"]["spotify"]
-        self.length = sum(i["track"]["duration_ms"] for i in data["tracks"]["items"])
+        if data["type"] == "playlist":
+            self.length = sum(i["track"]["duration_ms"] for i in data["tracks"]["items"])
+        else:
+            self.length = sum(i["duration_ms"] for i in data["tracks"]["items"])
 
         for track in tracks:
             await self._queue.put(track)
