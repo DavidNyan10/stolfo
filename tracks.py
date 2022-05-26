@@ -77,7 +77,7 @@ class YouTubeTrack(SearchableTrack, _YoutubeTrack):
 
     @classmethod
     async def search(cls, *args, ctx: Context, **kwargs):
-        tracks = await cls.search(*args, **kwargs)
+        tracks = await cls.search(*args, ctx=ctx, **kwargs)
 
         if tracks is None:
             return
