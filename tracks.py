@@ -72,7 +72,7 @@ class SearchableTrack(_SearchableTrack, Track):
         return tracks
 
 
-class YouTubeTrack(_YoutubeTrack, SearchableTrack):
+class YouTubeTrack(SearchableTrack, _YoutubeTrack):
     _search_type: ClassVar[str] = "ytsearch"
 
     async def search(self, *args, ctx: Context, **kwargs):
