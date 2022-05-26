@@ -682,7 +682,7 @@ class Music(Cog):
                 f"See `{ctx.prefix}help seek` for accepted formats."
             ))
 
-        new_position = max(0, min(new_position, player.current.length))
+        new_position = max(0, min(new_position, player.track.length))
         embed = ctx.embed(f"Seeked to {format_time(new_position)}.")
         await player.seek(new_position)
         await ctx.send(embed=embed)
