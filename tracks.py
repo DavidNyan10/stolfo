@@ -34,7 +34,8 @@ class SearchableTrack(_SearchableTrack, Track):
         *,
         type=None,
         node: Node = MISSING,
-        return_first: bool = False
+        return_first: bool = False,
+        ctx: Context
     ) -> Union[Optional[ST], list[ST]]:
         """|coro|
         Search for tracks with the given query.
@@ -61,10 +62,16 @@ class SearchableTrack(_SearchableTrack, Track):
         if str(check.host) == 'youtube.com' or str(check.host) == 'www.youtube.com' and check.query.get("list") or \
                 cls._search_type == 'ytpl':
             tracks = await node.get_playlist(cls=YouTubePlaylist, identifier=query)
+            if tracks:
+                tracks.ctx = ctx
         elif cls._search_type == 'local':
             tracks = await node.get_tracks(cls, query)
+            for track in tracks:
+                track.ctx = ctx
         else:
             tracks = await node.get_tracks(cls, f"{cls._search_type}:{query}")
+            for track in tracks:
+                track.ctx = ctx
 
         if return_first and not isinstance(tracks, YouTubePlaylist) and tracks is not None:
             return tracks[0]
@@ -73,22 +80,7 @@ class SearchableTrack(_SearchableTrack, Track):
 
 
 class YouTubeTrack(SearchableTrack, _YoutubeTrack):
-    _search_type: ClassVar[str] = "ytsearch"
-
-    @classmethod
-    async def search(cls, *args, ctx: Context, **kwargs):
-        tracks = await cls.search(*args, ctx=ctx, **kwargs)
-
-        if tracks is None:
-            return
-
-        if isinstance(tracks, YouTubeTrack):
-            tracks.ctx = ctx
-        else:
-            for track in tracks:
-                track.ctx = ctx
-
-        return tracks
+    ...
 
 
 class YouTubePlaylist(_YouTubePlaylist, SearchableTrack):
