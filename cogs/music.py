@@ -162,7 +162,7 @@ class Music(Cog):
         player.np_message = await player.bound_channel.send(embed=embed)
 
     @Cog.listener()
-    async def on_wavelink_track_end(self, player: Player, track: Track, _):
+    async def on_wavelink_track_end(self, player: Player, track: Track, reason: str):
         if player.np_message:
             try:
                 await player.np_message.delete()
