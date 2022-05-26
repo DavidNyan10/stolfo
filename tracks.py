@@ -15,8 +15,6 @@ from wavelink.utils import MISSING
 import spotify_ext as spotify
 from context import Context
 
-ST = TypeVar("ST", bound="SearchableTrack")
-
 
 class Track(_Track):
     def __init__(self, *args, ctx: Context, **kwargs):
@@ -29,13 +27,13 @@ class SearchableTrack(_SearchableTrack, Track):
 
     @classmethod
     async def search(
-        cls: Type[ST],
+        cls,
         query: str,
         *,
         type=None,
         node: Node = MISSING,
         return_first: bool = False
-    ) -> Union[Optional[ST], list[ST]]:
+    ) -> Union[Optional["SearchableTrack"], list["SearchableTrack"]]:
         """|coro|
         Search for tracks with the given query.
         Parameters
