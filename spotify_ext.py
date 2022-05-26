@@ -30,7 +30,7 @@ from discord.ext import commands
 from wavelink import Node, NodePool, PartialTrack, SearchableTrack, YouTubeTrack
 from wavelink.utils import MISSING
 
-from .tracks import PartialSpotifyTrack
+from tracks import PartialSpotifyTrack
 
 __all__ = ('SpotifySearchType',
            'SpotifyClient',
