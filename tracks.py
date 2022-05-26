@@ -15,6 +15,8 @@ from wavelink.utils import MISSING
 import spotify_ext as spotify
 from context import Context
 
+ST = TypeVar("ST", bound="SearchableTrack")
+
 
 class Track(_Track):
     def __init__(self, *args, ctx: Context, **kwargs):
@@ -27,13 +29,13 @@ class SearchableTrack(_SearchableTrack, Track):
 
     @classmethod
     async def search(
-        cls,
+        cls: Type[ST],
         query: str,
         *,
         type=None,
         node: Node = MISSING,
         return_first: bool = False
-    ) -> Union[Optional["SearchableTrack"], list["SearchableTrack"]]:
+    ) -> Union[Optional[ST], list[ST]]:
         """|coro|
         Search for tracks with the given query.
         Parameters
@@ -56,8 +58,7 @@ class SearchableTrack(_SearchableTrack, Track):
 
         check = yarl.URL(query)
 
-        if str(check.host) == 'youtube.com' or str(check.host) == 'www.youtube.com' and check.query.get("list") or \
-                cls._search_type == 'ytpl':
+        if str(check.host) == 'youtube.com' or str(check.host) == 'www.youtube.com' and check.query.get("list"):
             tracks = await node.get_playlist(cls=YouTubePlaylist, identifier=query)
         elif cls._search_type == 'local':
             tracks = await node.get_tracks(cls, query)
