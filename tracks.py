@@ -1,4 +1,4 @@
-from typing import Optional, Type, TypeVar, Union
+from typing import ClassVar, Optional, Type, TypeVar, Union
 
 import yarl
 from wavelink import (
@@ -25,6 +25,8 @@ class Track(_Track):
 
 
 class SearchableTrack(_SearchableTrack, Track):
+    _search_type: ClassVar[str]
+
     @classmethod
     async def search(
         cls: Type[ST],
@@ -71,6 +73,8 @@ class SearchableTrack(_SearchableTrack, Track):
 
 
 class YouTubeTrack(_YoutubeTrack, SearchableTrack):
+    _search_type: ClassVar[str] = "ytsearch"
+
     async def search(self, *args, ctx: Context, **kwargs):
         tracks = await super().search(*args, **kwargs)
 
@@ -87,6 +91,8 @@ class YouTubeTrack(_YoutubeTrack, SearchableTrack):
 
 
 class YouTubePlaylist(_YouTubePlaylist, SearchableTrack):
+    _search_type: ClassVar[str] = "ytpl"
+
     def __init__(self, data: dict, ctx: Context):
         self.tracks: list[YouTubeTrack] = []
         self.name: str = data["playlistInfo"]["name"]
