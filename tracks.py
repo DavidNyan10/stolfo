@@ -75,8 +75,9 @@ class SearchableTrack(_SearchableTrack, Track):
 class YouTubeTrack(SearchableTrack, _YoutubeTrack):
     _search_type: ClassVar[str] = "ytsearch"
 
-    async def search(self, *args, ctx: Context, **kwargs):
-        tracks = await super().search(*args, **kwargs)
+    @classmethod
+    async def search(cls, *args, ctx: Context, **kwargs):
+        tracks = await cls.search(*args, **kwargs)
 
         if tracks is None:
             return
