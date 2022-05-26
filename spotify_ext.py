@@ -321,7 +321,7 @@ class SpotifyTrack(YouTubeTrack):
 
             return tracks
 
-        return await node._spotify._search(query=query, type=type)
+        return await node._spotify._search(query=query, type=type, ctx=ctx)
 
     @classmethod
     def iterator(cls,
