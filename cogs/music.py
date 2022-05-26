@@ -221,7 +221,7 @@ class Music(Cog):
 
         return items
 
-    async def get_tracks(self, ctx: Context, query: str) -> Union[list[Track], YouTubePlaylist]:
+    async def get_tracks(self, ctx: Context, query: str) -> Union[spotify.SpotifyAsyncIterator, Track, YouTubePlaylist]:
         query = query.strip("< >")
 
         # patch youtube.com/shorts links to their video counterparts
@@ -230,42 +230,50 @@ class Music(Cog):
         elif (match := spotify.URLREGEX.match(query)):
             if match["type"] == "track":
                 return await spotify.SpotifyTrack.search(
-                    query, return_first=False, ctx=ctx
+                    query, return_first=True, ctx=ctx
                 )  # type: ignore
             elif match["type"] in ("album", "playlist"):
-                return [
-                    track async for track in spotify.SpotifyTrack.iterator(
-                        query=query, partial_tracks=True, ctx=ctx
-                    )
-                ]
+                return spotify.SpotifyTrack.iterator(query=query, partial_tracks=True, ctx=ctx)
             else:
                 raise UserError("Only Spotify tracks, albums, and playlists are supported.")
-        return await YouTubeTrack.search(query, return_first=False, ctx=ctx)  # type: ignore
+        return await YouTubeTrack.search(query, return_first=True, ctx=ctx)  # type: ignore
 
-    async def send_play_command_embed(self, ctx: Context, search: Union[Track, YouTubePlaylist]):
+    async def send_play_command_embed(
+        self,
+        ctx:
+        Context,
+        search: Union[spotify.SpotifyAsyncIterator, Track, YouTubePlaylist]
+    ):
         assert ctx.command is not None
-        if isinstance(search, YouTubePlaylist):
+        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
+            tracks = (
+                search.tracks if isinstance(search, YouTubePlaylist) else [t async for t in search]
+            )
             if ctx.command.name in ("playnext", "playskip"):
-                last_position = len(search.tracks)
+                last_position = len(tracks)
                 first_position = 1
             else:
                 last_position = len(ctx.voice_client.queue)
-                first_position = last_position - len(search.tracks) + 1
+                first_position = last_position - len(tracks) + 1
 
             word = "Shuffled" if ctx.command.name == "playshuffle" else "Queued"
 
             embed = ctx.embed(
-                f"{word} {search.name} - {len(search.tracks)} tracks",
-                url=Empty,
-                thumbnail_url=Empty
+                f"{word} {search.name} - {len(tracks)} tracks",
+                url=getattr(search, "uri", None),
+                thumbnail_url=getattr(search, "thumbnail", None)
             )
 
-            if any(t.is_stream() for t in search.tracks):
-                embed.add_field(name="# of tracks", value=len(search.tracks))
+            if isinstance(search, YouTubePlaylist) and any(t.is_stream() for t in search.tracks):
+                embed.add_field(name="# of tracks", value=len(tracks))
             else:
+                if isinstance(search, YouTubePlaylist):
+                    length = sum(t.length for t in search.tracks) * 1000
+                else:
+                    length = search.length
                 embed.add_field(
                     name="Duration",
-                    value=format_time(sum(t.length for t in search.tracks) * 1000)
+                    value=format_time(length)  # type: ignore
                 )
 
             embed.add_field(name="Position in queue", value=f"{first_position}-{last_position}")
@@ -305,8 +313,11 @@ class Music(Cog):
         if not (search := await self.get_tracks(ctx, query)):
             return await ctx.send(embed=ctx.embed("Nothing found."))
 
-        if isinstance(search, YouTubePlaylist):
-            tracks = search.tracks
+        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
+            if isinstance(search, YouTubePlaylist):
+                tracks = search.tracks
+            else:
+                tracks = [t async for t in search]
 
             for track in tracks:
                 player.queue.put(track)
@@ -316,7 +327,7 @@ class Music(Cog):
 
             await self.send_play_command_embed(ctx, search)
         else:
-            track = search[0]
+            track = search
 
             player.queue.put(track)
             if player.shuffle:
@@ -327,7 +338,13 @@ class Music(Cog):
                 await self.send_play_command_embed(ctx, track)
 
         if not player.is_playing() and not player.has_started:
-            await player.play(player.queue.get())
+            track = player.queue.get()
+
+            if isinstance(track, PartialTrack):
+                track = await track._search()
+
+            await player.play(track)
+            await self.fake_on_wavelink_track_start(player, track)
             player.has_started = True
 
     @commands.command(aliases=["pn", "playtop", "pt"])
@@ -338,8 +355,11 @@ class Music(Cog):
         if not (search := await self.get_tracks(ctx, query)):
             return await ctx.send(embed=ctx.embed("Nothing found."))
 
-        if isinstance(search, YouTubePlaylist):
-            tracks = search.tracks
+        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
+            if isinstance(search, YouTubePlaylist):
+                tracks = search.tracks
+            else:
+                tracks = [t async for t in search]
 
             for track in reversed(tracks):
                 player.queue.put_at_front(track)
@@ -349,7 +369,7 @@ class Music(Cog):
 
             await self.send_play_command_embed(ctx, search)
         else:
-            track = search[0]
+            track = search
 
             player.queue.put_at_front(track)
             if player.shuffle:
@@ -360,7 +380,13 @@ class Music(Cog):
                 await self.send_play_command_embed(ctx, track)
 
         if not player.is_playing() and not player.has_started:
-            await player.play(player.queue.get())
+            track = player.queue.get()
+
+            if isinstance(track, PartialTrack):
+                track = await track._search()
+
+            await player.play(track)
+            await self.fake_on_wavelink_track_start(player, track)
             player.has_started = True
 
     @commands.command(aliases=["ps"])
@@ -371,8 +397,11 @@ class Music(Cog):
         if not (search := await self.get_tracks(ctx, query)):
             return await ctx.send(embed=ctx.embed("Nothing found."))
 
-        if isinstance(search, YouTubePlaylist):
-            tracks = search.tracks
+        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
+            if isinstance(search, YouTubePlaylist):
+                tracks = search.tracks
+            else:
+                tracks = [t async for t in search]
 
             for track in reversed(tracks):
                 player.queue.put_at_front(track)
@@ -382,7 +411,7 @@ class Music(Cog):
 
             await self.send_play_command_embed(ctx, search)
         else:
-            track = search[0]
+            track = search
 
             player.queue.put_at_front(track)
             if player.shuffle:
@@ -390,7 +419,13 @@ class Music(Cog):
                 player.shuffled_queue.put_at_front(track)
 
         if not player.is_playing() and not player.has_started:
-            await player.play(player.queue.get())
+            track = player.queue.get()
+
+            if isinstance(track, PartialTrack):
+                track = await track._search()
+
+            await player.play(track)
+            await self.fake_on_wavelink_track_start(player, track)
             player.has_started = True
         elif not player.is_playing():
             pass
@@ -405,8 +440,11 @@ class Music(Cog):
         if not (search := await self.get_tracks(ctx, query)):
             return await ctx.send(embed=ctx.embed("Nothing found."))
 
-        if isinstance(search, YouTubePlaylist):
-            tracks = search.tracks
+        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
+            if isinstance(search, YouTubePlaylist):
+                tracks = search.tracks
+            else:
+                tracks = [t async for t in search]
             random.shuffle(tracks)
 
             for track in tracks:
@@ -417,7 +455,7 @@ class Music(Cog):
 
             await self.send_play_command_embed(ctx, search)
         else:
-            track = search[0]
+            track = search
 
             player.queue.put(track)
             if player.shuffle:
@@ -475,7 +513,6 @@ class Music(Cog):
         if not player.is_playing():
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
-        assert isinstance(player.track, Track)
         title = player.track.title
         uri = player.track.uri
 

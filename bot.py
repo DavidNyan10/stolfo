@@ -5,9 +5,8 @@ from discord import ClientUser, Game, Intents, Message, Status
 from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
 from wavelink import NodePool
-from wavelink.ext import spotify
 
-
+import spotify_ext as spotify
 from config import LL_HOST, LL_PORT, LL_PASS, SPOTIFY_ID, SPOTIFY_SECRET, TOKEN
 from context import Context
 
@@ -34,7 +33,7 @@ class Bot(commands.Bot):
             host=LL_HOST,
             port=LL_PORT,
             password=LL_PASS,
-            spotify_client=spotify_client,
+            spotify_client=spotify_client,  # type: ignore
         )
 
         # loading cogs

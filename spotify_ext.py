@@ -27,10 +27,10 @@ from typing import List, Optional, Type, TypeVar, Union
 import aiohttp
 import wavelink
 from discord.ext import commands
-from wavelink import Node, NodePool, SearchableTrack, YouTubeTrack
 from wavelink.utils import MISSING
 
-from tracks import PartialSpotifyTrack
+from context import Context
+from tracks import PartialSpotifyTrack, YouTubeTrack
 
 __all__ = ('SpotifySearchType',
            'SpotifyClient',
@@ -45,7 +45,7 @@ URLREGEX = re.compile(r'(https?://open.)?(spotify)(.com/|:)'
                       r'(?P<id>[a-zA-Z0-9]+)(\?si=[a-zA-Z0-9]+)?(&dl_branch=[0-9]+)?')
 BASEURL = 'https://api.spotify.com/v1/{entity}s/{identifier}'
 
-ST = TypeVar("ST", bound="SearchableTrack")
+ST = TypeVar("ST")
 
 
 def decode_url(url: str) -> Optional[dict]:
@@ -104,9 +104,9 @@ class SpotifyAsyncIterator:
         query: str,
         limit: int,
         type: SpotifySearchType,
-        node: Node,
+        node,
         partial: bool,
-        ctx: commands.Context
+        ctx: Context
     ):
         self._query = query
         self._limit = limit
@@ -119,14 +119,21 @@ class SpotifyAsyncIterator:
         self._count = 0
         self._queue = asyncio.Queue()
         self._ctx = ctx
+        self.name = None
+        self.thumbnail = None
+        self.uri = None
+        self.length = None
 
     def __aiter__(self):
         return self
 
     async def fill_queue(self):
-        assert self._node._spotify is not None
-        tracks = await self._node._spotify._search(query=self._query, iterator=True, type=self._type)
-        assert tracks is not None
+        tracks, data = await self._node._spotify._search(query=self._query, iterator=True, type=self._type)
+
+        self.name = data["name"]
+        self.thumbnail = data["images"][0]["url"] if data["images"] else None
+        self.uri = data["external_urls"]["spotify"]
+        self.length = sum(i["duration_ms"] for i in data["tracks"]["items"])
 
         for track in tracks:
             await self._queue.put(track)
@@ -150,9 +157,9 @@ class SpotifyAsyncIterator:
         if self._partial:
             track = PartialSpotifyTrack(track, ctx=self._ctx)
         else:
-            track = (await wavelink.YouTubeTrack.search(query=f'{track["name"]} -'
-                                                              f' {track["artists"][0]["name"]}',
-                                                        ctx=self._ctx))[0]
+            track = await YouTubeTrack.search(query=f'{track["name"]} -'
+                                                    f' {track["artists"][0]["name"]}',
+                                              ctx=self._ctx)
 
         self._count += 1
         return track
@@ -216,7 +223,7 @@ class SpotifyClient:
                       type: SpotifySearchType = SpotifySearchType.track,
                       iterator: bool = False,
                       *,
-                      ctx: commands.Context
+                      ctx: Context
                       ) -> Optional[List[YouTubeTrack]]:
 
         if not self._bearer_token or time.time() >= self._expiry:
@@ -236,20 +243,12 @@ class SpotifyClient:
             data = await resp.json()
 
             if data['type'] == 'track':
-                return await wavelink.YouTubeTrack.search(
-                    f'{data["name"]} - {data["artists"][0]["name"]}',
-                    ctx=ctx
-                )
+                return await YouTubeTrack.search(f'{data["name"]} - {data["artists"][0]["name"]}', return_first=True, ctx=ctx)
 
             elif data['type'] == 'album' and iterator is False:
                 tracks = data['tracks']['items']
-                return [
-                    (await wavelink.YouTubeTrack.search(
-                        f'{t["name"]} - {t["artists"][0]["name"]}',
-                        ctx=ctx
-                    ))[0]
-                    for t in tracks
-                ]
+                return [(await YouTubeTrack.search(f'{t["name"]} - {t["artists"][0]["name"]}', return_first=True, ctx=ctx))
+                        for t in tracks]
 
             elif data['type'] == 'playlist' and iterator is False:
                 ret = []
@@ -257,9 +256,7 @@ class SpotifyClient:
 
                 for track in tracks:
                     t = track['track']
-                    ret.append((await wavelink.YouTubeTrack.search(
-                        f'{t["name"]} - {t["artists"][0]["name"]}', ctx=ctx)
-                    )[0])
+                    ret.append((await YouTubeTrack.search(f'{t["name"]} - {t["artists"][0]["name"]}', return_first=True, ctx=ctx)))
 
                 return ret
 
@@ -275,13 +272,13 @@ class SpotifyClient:
 
                             items.extend([t['track'] for t in data['items']])
                             if not data['next']:
-                                return items
+                                return items, data
 
                             url = data['next']
                 else:
-                    return [t['track'] for t in data['tracks']['items']]
+                    return [t['track'] for t in data['tracks']['items']], data
 
-            return data['tracks']['items']
+            return data['tracks']['items'], data
 
 
 class SpotifyTrack(YouTubeTrack):
@@ -317,7 +314,7 @@ class SpotifyTrack(YouTubeTrack):
             node = NodePool.get_node()
 
         if type == SpotifySearchType.track:
-            tracks = await node._spotify._search(query=query, type=type)
+            tracks = await node._spotify._search(query=query, type=type, ctx=ctx)
 
             if return_first:
                 return tracks[0]
@@ -334,7 +331,7 @@ class SpotifyTrack(YouTubeTrack):
                  type: SpotifySearchType = SpotifySearchType.playlist,
                  node: Optional[Node] = MISSING,
                  partial_tracks: bool = False,
-                 ctx: commands.Context
+                 ctx: Context
                  ):
         """An async iterator version of search.
         This can be useful when searching for large playlists or albums with Spotify.
