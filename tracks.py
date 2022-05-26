@@ -86,7 +86,7 @@ class YouTubeTrack(SearchableTrack, _YoutubeTrack):
 class YouTubePlaylist(_YouTubePlaylist, SearchableTrack):
     _search_type: ClassVar[str] = "ytpl"
 
-    def __init__(self, data: dict):
+    def __init__(self, data: dict, ctx: Context):
         self.tracks: list[YouTubeTrack] = []
         self.name: str = data["playlistInfo"]["name"]
 
