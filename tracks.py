@@ -114,6 +114,8 @@ class PartialTrack(_PartialTrack):
 
         return tracks[0]  # type: ignore
 
+    def is_stream(self):
+        return False
 
 class PartialSpotifyTrack(PartialTrack):
     def __init__(self, data, ctx: Context, thumbnail: Optional[str] = None):
