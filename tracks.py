@@ -107,7 +107,6 @@ class PartialTrack(_PartialTrack):
 
 class PartialSpotifyTrack(PartialTrack):
     def __init__(self, data, ctx: Context):
-        print(data)
         self.thumbnail = data["album"]["images"][0]["url"]
         self.uri = data["external_urls"].get("spotify")
         super().__init__(
