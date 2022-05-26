@@ -141,7 +141,6 @@ class Music(Cog):
 
     @Cog.listener()
     async def on_wavelink_track_start(self, player: Player, track: Track):
-        print(type(track), track.__class__.__module__)
         ctx = track.ctx
         if player.shuffle:
             player.queue.history.put(track)
