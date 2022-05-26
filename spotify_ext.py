@@ -119,6 +119,7 @@ class SpotifyAsyncIterator:
         self._count = 0
         self._queue = asyncio.Queue()
         self._ctx = ctx
+        self._type = None
         self.name = None
         self.thumbnail = None
         self.uri = None
@@ -130,10 +131,13 @@ class SpotifyAsyncIterator:
     async def fill_queue(self):
         tracks, data = await self._node._spotify._search(query=self._query, iterator=True, type=self._type, ctx=self._ctx)
 
+        self._type = data["type"]
+
         self.name = data["name"]
         self.thumbnail = data["images"][0]["url"] if data["images"] else None
         self.uri = data["external_urls"]["spotify"]
-        if data["type"] == "playlist":
+
+        if self._type == "playlist":
             self.length = sum(i["track"]["duration_ms"] for i in data["tracks"]["items"])
         else:
             self.length = sum(i["duration_ms"] for i in data["tracks"]["items"])
@@ -159,7 +163,7 @@ class SpotifyAsyncIterator:
 
         if self._partial:
             track = PartialSpotifyTrack(
-                track, ctx=self._ctx, data["images"][0]["url"] if data["type"] == "album" else None
+                track, self._ctx, self.thumbnail if self._type == "album" else None
             )
         else:
             track = await YouTubeTrack.search(query=f'{track["name"]} -'
