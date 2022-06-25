@@ -1,35 +1,38 @@
 import asyncio
 import random
 import re
-from io import BytesIO
+from io import StringIO
 from traceback import format_exception
 from typing import Optional, Type, Union
 
 from async_timeout import timeout
-from discord import Color, File, HTTPException, Member, TextChannel, VoiceState
+from discord import Color, File, HTTPException, Member, VoiceState
 from discord.embeds import _EmptyEmbed, EmptyEmbed as Empty
 from discord.ext import commands
 from discord.ext.commands import Cog, CommandError, CommandInvokeError
-from wavelink import NodePool, WaitQueue
+from pomice import Playlist, Track
 
-import spotify_ext as spotify
 from bot import Bot
 from config import LOG_CHANNEL
 from context import Context
 from player import QueuePlayer as Player
-from tracks import PartialTrack, Track, YouTubePlaylist, YouTubeTrack
-
+from queues import Queue
 
 HH_MM_SS_RE = re.compile(r"(?P<h>\d{1,2}):(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 MM_SS_RE = re.compile(r"(?P<m>\d{1,2}):(?P<s>\d{1,2})")
 HUMAN_RE = re.compile(r"(?:(?P<m>\d+)\s*m\s*)?(?P<s>\d+)\s*[sm]")
 OFFSET_RE = re.compile(r"(?P<s>(?:\-|\+)\d+)\s*s", re.IGNORECASE)
 
+YT_SHORTS_RE = re.compile(r"(?:https?://)?(?:www)?youtube\.com/shorts/([^\n\r?&]+).*?$")
+YT_SHORTS_RE = re.compile(r"(?:https?://)?(?:www)?youtube\.com/shorts/([^\n\r?&/]+).*?$")
 YT_SHORTS_RE = re.compile(r"(?:https?://)?(?:www\.)?youtube\.com/shorts/([^\n\r?&/]+)")
 
+SPOTIFY_LOGO_URL = "https://cdn.veeps.moe/xKMKPU/spotify.png"
+YOUTUBE_LOGO_URL = "https://cdn.veeps.moe/PPZ97K/youtube.png"
 
-def format_time(seconds: Union[float, int]) -> str:
-    hours, rem = divmod(int(seconds // 1000), 3600)
+
+def format_time(milliseconds: Union[float, int]) -> str:
+    hours, rem = divmod(int(milliseconds // 1000), 3600)
     minutes, seconds = divmod(rem, 60)
 
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
@@ -50,11 +53,6 @@ class Music(Cog):
         raise UserError("Music commands are disabled in DMs.")
 
     async def ensure_voice(self, ctx: Context):
-        assert ctx.command is not None \
-           and isinstance(ctx.author, Member) \
-           and isinstance(ctx.me, Member) \
-           and isinstance(ctx.channel, TextChannel)
-
         should_connect = ctx.command.name in ("play", "playnext", "playskip", "playshuffle")
 
         if not ctx.author.voice or not ctx.author.voice.channel:
@@ -77,24 +75,28 @@ class Music(Cog):
                 raise UserError("I'm missing permissions to speak in your voice channel!")
 
             await channel.connect(cls=Player)
-            ctx.voice_client.bound_channel = ctx.channel
-
+            ctx.voice_client.bound_channel = ctx.channel  # type: ignore
             await ctx.send(embed=ctx.embed(
                 f"Connected to {channel.name}!",
                 f"Music commands are bound to {ctx.channel.mention}."
             ))
-
-        elif int(ctx.voice_client.channel.id) != channel.id:
-            raise UserError("You need to be in my voice channel to use this!")
-
-        elif ctx.voice_client.bound_channel and ctx.channel != ctx.voice_client.bound_channel:
-            bound_channel = ctx.voice_client.bound_channel
-            raise UserError(f"Music commands are currently bound to #{bound_channel.name}.")
+        else:
+            if should_connect and not ctx.voice_client.channel:
+                await channel.connect(cls=ctx.voice_client)
+                ctx.voice_client.bound_channel = ctx.channel
+                await ctx.send(embed=ctx.embed(
+                    f"Connected to {channel.name}!",
+                    f"Music commands are bound to {ctx.channel.mention}."
+                ))
+            elif int(ctx.voice_client.channel.id) != channel.id:
+                raise UserError("You need to be in my voice channel to use this!")
+            elif ctx.voice_client.bound_channel and ctx.channel != ctx.voice_client.bound_channel:
+                bound_channel = ctx.voice_client.bound_channel
+                raise UserError(f"Music commands are currently bound to #{bound_channel.name}.")
 
     async def cog_command_error(self, ctx: Context, error: Type[CommandError]):
         if isinstance(error, UserError):
             await ctx.send(embed=ctx.embed(error.message))
-
         elif isinstance(error, CommandInvokeError):
             error = error.original
             embed = ctx.embed(f"{error.__class__.__name__}: {error}")
@@ -106,7 +108,6 @@ class Music(Cog):
                 format_exception(type(error), error, error.__traceback__, chain=True)
             )
 
-            assert ctx.guild is not None and isinstance(log, TextChannel)
             embed = ctx.embed(
                 "Command exception caught!",
                 f"```python\n{full_traceback}\n```" if len(full_traceback) <= 4000 else Empty
@@ -115,7 +116,7 @@ class Music(Cog):
             embed.add_field(name="Guild", value=f"{ctx.guild.name} ({ctx.guild.id})")
 
             if len(full_traceback) > 4000:
-                file = File(BytesIO(full_traceback.encode("utf-8")), "traceback.txt")
+                file = File(StringIO(full_traceback), "traceback.txt")
                 return await log.send(embed=embed, file=file)
 
             await log.send(embed=embed)
@@ -126,159 +127,136 @@ class Music(Cog):
             return
 
         guild = member.guild
-        if (player := NodePool.get_node().get_player(guild)) is None:
+        if (player := self.bot.pomice.get_node().get_player(guild.id)) is None:
             return
 
-        if not after.channel:
-            return await player.disconnect()
+        if not after.channel and not player.is_dead:
+            return await player.destroy()
 
-        if player.is_playing() and before.channel != after.channel:
-            paused = player.is_paused()
-
+        if player.is_playing and before.channel != after.channel:
+            paused = player.is_paused
             await player.set_pause(True)
             await asyncio.sleep(1)
             await player.set_pause(paused)
 
-    async def fake_on_wavelink_track_start(self, player: Player, track: Track):
-        ctx = track.ctx
+    @Cog.listener()
+    async def on_pomice_track_start(self, player: Player, track: Track):
+        ctx: Context = track.ctx
 
         if player.shuffle:
-            player.queue.history.put(track)
+            player.queue.history.put(track.original)
 
-        if track.is_stream():
+        if track.is_stream:
             length = "🔴 Live"
         else:
-            length = format_time(track.length * 1000)
+            length = format_time(track.original.length)
 
+        title = track.title if not track.spotify else f"{track.author} - {track.title}"
         embed = ctx.embed(
-            f"Now playing: {track.title}",
+            f"Now playing: {title}",
             url=track.uri,
             thumbnail_url=self.get_embed_thumbnail(track)
         )
         embed.add_field(name="Duration", value=length)
         embed.add_field(name="Requested by", value=ctx.author.mention)
 
-        assert player.bound_channel is not None
-        player.np_message = await player.bound_channel.send(embed=embed)
+        if track.spotify:
+            embed.set_footer(
+                text=f"{ctx.prefix}np for YouTube track information",
+                icon_url=SPOTIFY_LOGO_URL
+            )
+        elif "youtube.com" in track.uri:
+            embed.set_footer(text="\u200b", icon_url=YOUTUBE_LOGO_URL)
+
+        track.np_message = await ctx.send(embed=embed)
 
     @Cog.listener()
-    async def on_wavelink_track_end(self, player: Player, track: Track, reason: str):
-        if player.np_message:
-            try:
-                await player.np_message.delete()
-                player.np_message = None
-            except (HTTPException, AttributeError):
-                pass
+    async def on_pomice_track_end(self, player: Player, track: Track, _):
+        try:
+            await track.np_message.delete()
+        except (HTTPException, AttributeError):
+            pass
 
         try:
             async with timeout(300):
                 if player.shuffle:
-                    assert player.shuffled_queue is not None
                     next_track = await player.shuffled_queue.get_wait()
                     del player.queue[player.queue.find_position(next_track)]
                 else:
                     next_track = await player.queue.get_wait()
 
                 try:
-                    if isinstance(next_track, PartialTrack):
-                        next_track = await next_track._search()
-
-                    await player.play(next_track, replace=False)
-                    await self.fake_on_wavelink_track_start(player, next_track)
+                    await player.play(next_track, ignore_if_playing=True)
                 except Exception as e:
-                    if isinstance(next_track, spotify.PartialSpotifyTrack) \
-                       and isinstance(e, IndexError):
-                        await player.bound_channel.send(embed=next_track.ctx.embed(
+                    if next_track.spotify and isinstance(e, TypeError):
+                        await next_track.ctx.send(embed=next_track.ctx.embed(
                             f"No results found for Spotify track {next_track} - skipping."
                         ))
                     else:
-                        await player.bound_channel.send(embed=next_track.ctx.embed(
+                        await next_track.ctx.send(embed=next_track.ctx.embed(
                             f"Something went wrong while playing {next_track} - skipping."
                         ))
                         print(e)
 
-                    await self.on_wavelink_track_end(player, next_track, "error playing next")
+                    await self.on_pomice_track_end(player, next_track, "error playing next")
         except asyncio.TimeoutError:
-            if not player.is_playing():
-                await player.disconnect()
+            if not player.is_dead and not player.is_playing:
+                await player.destroy()
 
     def get_embed_thumbnail(self, track: Track) -> Union[str, _EmptyEmbed]:
-        if (thumbnail := getattr(track, "thumbnail")) is not None:
+        if thumbnail := track.info.get("thumbnail"):
             return thumbnail
         elif any(i in track.uri for i in ("youtu.be", "youtube.com")):
             return f"https://img.youtube.com/vi/{track.identifier}/mqdefault.jpg"
         else:
             return Empty
 
-    def format_queue(self, queue: WaitQueue[Track]) -> list[str]:
+    def format_queue(self, queue: Queue) -> str:
         items = []
         for i, track in enumerate(queue):
+            title = track.title if not track.spotify else f"{track.author} - {track.title}"
             items.append(
-                f"**{i + 1}: [{track.title}]({track.uri}) **"
-                f"[{'stream' if track.is_stream() else format_time(track.length * 1000)}] "
+                f"**{i + 1}: [{title}]({track.uri}) **"
+                f"[{'stream' if track.is_stream else format_time(track.length)}] "
                 f"({track.ctx.author.mention})"
             )
 
         return items
 
-    async def get_tracks(self, ctx: Context, query: str) -> Union[spotify.SpotifyAsyncIterator, Track, YouTubePlaylist]:
+    async def get_tracks(self, ctx: Context, query: str):
         query = query.strip("< >")
 
         # patch youtube.com/shorts links to their video counterparts
         if YT_SHORTS_RE.match(query):
             query = YT_SHORTS_RE.sub(r"https://youtube.com/watch?v=\1", query)
-        elif (match := spotify.URLREGEX.match(query)):
-            if match["type"] == "track":
-                return await spotify.SpotifyTrack.search(
-                    query, return_first=True, ctx=ctx
-                )  # type: ignore
-            elif match["type"] in ("album", "playlist"):
-                return spotify.SpotifyTrack.iterator(query=query, partial_tracks=True, ctx=ctx)
-            else:
-                raise UserError("Only Spotify tracks, albums, and playlists are supported.")
-        return await YouTubeTrack.search(query, return_first=True, ctx=ctx)  # type: ignore
 
-    async def send_play_command_embed(
-        self,
-        ctx:
-        Context,
-        search: Union[spotify.SpotifyAsyncIterator, Track, YouTubePlaylist],
-        *,
-        tracks: Optional[list[Track]]
-    ):
-        assert ctx.command is not None
-        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
-            _tracks = tracks if isinstance(
-                search, spotify.SpotifyAsyncIterator
-            ) else search.tracks
+        return await ctx.voice_client.get_tracks(query, ctx=ctx)
 
-            assert _tracks is not None
-
+    async def send_play_command_embed(self, ctx: Context, search: Union[Track, Playlist]):
+        if isinstance(search, Playlist):
             if ctx.command.name in ("playnext", "playskip"):
-                last_position = len(_tracks)
+                last_position = search.track_count
                 first_position = 1
             else:
                 last_position = len(ctx.voice_client.queue)
-                first_position = last_position - len(_tracks) + 1
+                first_position = last_position - search.track_count + 1
 
             word = "Shuffled" if ctx.command.name == "playshuffle" else "Queued"
 
             embed = ctx.embed(
-                f"{word} {search.name} - {len(_tracks)} tracks",
-                url=getattr(search, "uri", None),
-                thumbnail_url=getattr(search, "thumbnail", None)
+                f"{word} {search.name} - {search.track_count} tracks",
+                url=search.uri if search.spotify else Empty,
+                thumbnail_url=search.thumbnail
+                if search.spotify
+                else Empty
             )
 
-            if isinstance(search, YouTubePlaylist) and any(t.is_stream() for t in search.tracks):
-                embed.add_field(name="# of tracks", value=len(_tracks))
+            if any(t.is_stream for t in search.tracks):
+                embed.add_field(name="# of tracks", value=search.track_count)
             else:
-                if isinstance(search, YouTubePlaylist):
-                    length = sum(t.length for t in search.tracks) * 1000
-                else:
-                    length = search.length
                 embed.add_field(
                     name="Duration",
-                    value=format_time(length)  # type: ignore
+                    value=format_time(sum(t.length for t in search.tracks))
                 )
 
             embed.add_field(name="Position in queue", value=f"{first_position}-{last_position}")
@@ -288,10 +266,10 @@ class Music(Cog):
             else:
                 queue_position = len(ctx.voice_client.queue)
 
-            if search.is_stream():
+            if search.is_stream:
                 length = "🔴 Live"
             else:
-                length = format_time(search.length * 1000)
+                length = format_time(search.length)
 
             embed = ctx.embed(
                 f"Queued {search.title}",
@@ -309,7 +287,7 @@ class Music(Cog):
         """Queues one or multiple tracks. Can be used to resume the player if paused."""
         player = ctx.voice_client
 
-        if player.is_paused() and not query:
+        if player.is_paused and not query:
             await player.set_pause(False)
             return await ctx.send(embed=ctx.embed("Resumed player!"))
         elif not query:
@@ -318,38 +296,27 @@ class Music(Cog):
         if not (search := await self.get_tracks(ctx, query)):
             return await ctx.send(embed=ctx.embed("Nothing found."))
 
-        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
-            if isinstance(search, YouTubePlaylist):
-                tracks = search.tracks
-            else:
-                tracks = [t async for t in search]
+        if isinstance(search, Playlist):
+            tracks = search.tracks
 
             for track in tracks:
                 player.queue.put(track)
                 if player.shuffle:
-                    assert player.shuffled_queue is not None
                     player.shuffled_queue.put(track)
 
-            await self.send_play_command_embed(ctx, search, tracks=tracks)
+            await self.send_play_command_embed(ctx, search)
         else:
-            track = search
+            track = search[0]
 
             player.queue.put(track)
             if player.shuffle:
-                assert player.shuffled_queue is not None
                 player.shuffled_queue.put(track)
 
-            if player.is_playing():
+            if player.is_playing:
                 await self.send_play_command_embed(ctx, track)
 
-        if not player.is_playing() and not player.has_started:
-            track = player.queue.get()
-
-            if isinstance(track, PartialTrack):
-                track = await track._search()
-
-            await player.play(track)
-            await self.fake_on_wavelink_track_start(player, track)
+        if not player.is_playing and not player.has_started:
+            await player.play(player.queue.get())
             player.has_started = True
 
     @commands.command(aliases=["pn", "playtop", "pt"])
@@ -360,38 +327,27 @@ class Music(Cog):
         if not (search := await self.get_tracks(ctx, query)):
             return await ctx.send(embed=ctx.embed("Nothing found."))
 
-        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
-            if isinstance(search, YouTubePlaylist):
-                tracks = search.tracks
-            else:
-                tracks = [t async for t in search]
+        if isinstance(search, Playlist):
+            tracks = search.tracks
 
             for track in reversed(tracks):
                 player.queue.put_at_front(track)
                 if player.shuffle:
-                    assert player.shuffled_queue is not None
                     player.shuffled_queue.put_at_front(track)
 
-            await self.send_play_command_embed(ctx, search, tracks=tracks)
+            await self.send_play_command_embed(ctx, search)
         else:
-            track = search
+            track = search[0]
 
             player.queue.put_at_front(track)
             if player.shuffle:
-                assert player.shuffled_queue is not None
                 player.shuffled_queue.put_at_front(track)
 
-            if player.is_playing():
+            if player.is_playing:
                 await self.send_play_command_embed(ctx, track)
 
-        if not player.is_playing() and not player.has_started:
-            track = player.queue.get()
-
-            if isinstance(track, PartialTrack):
-                track = await track._search()
-
-            await player.play(track)
-            await self.fake_on_wavelink_track_start(player, track)
+        if not player.is_playing and not player.has_started:
+            await player.play(player.queue.get())
             player.has_started = True
 
     @commands.command(aliases=["ps"])
@@ -402,37 +358,26 @@ class Music(Cog):
         if not (search := await self.get_tracks(ctx, query)):
             return await ctx.send(embed=ctx.embed("Nothing found."))
 
-        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
-            if isinstance(search, YouTubePlaylist):
-                tracks = search.tracks
-            else:
-                tracks = [t async for t in search]
+        if isinstance(search, Playlist):
+            tracks = search.tracks
 
             for track in reversed(tracks):
                 player.queue.put_at_front(track)
                 if player.shuffle:
-                    assert player.shuffled_queue is not None
                     player.shuffled_queue.put_at_front(track)
 
-            await self.send_play_command_embed(ctx, search, tracks=tracks)
+            await self.send_play_command_embed(ctx, search)
         else:
-            track = search
+            track = search[0]
 
             player.queue.put_at_front(track)
             if player.shuffle:
-                assert player.shuffled_queue is not None
                 player.shuffled_queue.put_at_front(track)
 
-        if not player.is_playing() and not player.has_started:
-            track = player.queue.get()
-
-            if isinstance(track, PartialTrack):
-                track = await track._search()
-
-            await player.play(track)
-            await self.fake_on_wavelink_track_start(player, track)
+        if not player.is_playing and not player.has_started:
+            await player.play(player.queue.get())
             player.has_started = True
-        elif not player.is_playing():
+        elif not player.is_playing:
             pass
         else:
             await player.stop()
@@ -445,32 +390,27 @@ class Music(Cog):
         if not (search := await self.get_tracks(ctx, query)):
             return await ctx.send(embed=ctx.embed("Nothing found."))
 
-        if isinstance(search, (spotify.SpotifyAsyncIterator, YouTubePlaylist)):
-            if isinstance(search, YouTubePlaylist):
-                tracks = search.tracks
-            else:
-                tracks = [t async for t in search]
+        if isinstance(search, Playlist):
+            tracks = search.tracks
             random.shuffle(tracks)
 
             for track in tracks:
                 player.queue.put(track)
                 if player.shuffle:
-                    assert player.shuffled_queue is not None
                     player.shuffled_queue.put(track)
 
-            await self.send_play_command_embed(ctx, search, tracks=tracks)
+            await self.send_play_command_embed(ctx, search)
         else:
-            track = search
+            track = search[0]
 
             player.queue.put(track)
             if player.shuffle:
-                assert player.shuffled_queue is not None
                 player.shuffled_queue.put(track)
 
-            if player.is_playing():
+            if player.is_playing:
                 await self.send_play_command_embed(ctx, track)
 
-        if not player.is_playing() and not player.has_started:
+        if not player.is_playing and not player.has_started:
             await player.play(player.queue.get())
             player.has_started = True
 
@@ -479,7 +419,7 @@ class Music(Cog):
         """Pauses the player if it's playing."""
         player = ctx.voice_client
 
-        if player.is_paused():
+        if player.is_paused:
             return await ctx.send(embed=ctx.embed(
                 "Player already paused.",
                 f"Use `{ctx.prefix}play` or `{ctx.prefix}resume` to resume playback."
@@ -493,7 +433,7 @@ class Music(Cog):
         """Resumes playback if the player is paused."""
         player = ctx.voice_client
 
-        if not player.is_paused():
+        if not player.is_paused:
             return await ctx.send(embed=ctx.embed("Player is not paused."))
 
         await player.set_pause(False)
@@ -506,7 +446,7 @@ class Music(Cog):
         channel_name = player.channel.name
 
         player.queue.clear()
-        await player.disconnect()
+        await player.destroy()
 
         await ctx.send(embed=ctx.embed(f"Disconnected from {channel_name}!"))
 
@@ -515,11 +455,11 @@ class Music(Cog):
         """Skips the currently playing track."""
         player = ctx.voice_client
 
-        if not player.is_playing():
+        if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
-        title = player.track.title
-        uri = player.track.uri
+        title = player.current.title
+        uri = player.current.uri
 
         await player.stop()
         await ctx.send(embed=ctx.embed(f"Skipped {title}", url=uri))
@@ -536,30 +476,26 @@ class Music(Cog):
 
         queue_items = self.format_queue(queue)
 
-        current = player.track
-
-        assert isinstance(current, Track)
-        if current.is_stream():
+        current = player.current.original
+        if current.is_stream:
             current_pos = "stream"
         else:
-            current_pos = (
-                f"{format_time(player.position * 1000)}/"
-                f"{format_time(current.length * 1000)}"
-            )
+            current_pos = f"{format_time(player.position)}/{format_time(current.length)}"
 
+        cur_title = current.title if not current.spotify else f"{current.author} - {current.title}"
         queue_items.insert(
             0,
-            f"**▶ [{current.title}]({current.uri}) **"
+            f"**▶ [{cur_title}]({current.uri}) **"
             f"[{current_pos}] "
             f"({current.ctx.author.mention})\n"
         )
 
         q_length = f"{len(queue)} track{'' if len(queue) == 1 else 's'}"
-        if any(t.is_stream() for t in queue):  # type: ignore
+        if any(t.is_stream for t in queue):
             q_duration = ""
         else:
             total = format_time(
-                sum(t.length for t in queue) + (current.length - player.position) * 1000
+                sum(t.length for t in queue) + (current.length - player.position)
             )
             q_duration = f" ({total})"
 
@@ -572,26 +508,31 @@ class Music(Cog):
         """Shows info about the currently playing track."""
         player = ctx.voice_client
 
-        if not player.is_playing():
+        if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
-        track = player.track
-        assert isinstance(track, Track)
+        track = player.current.original
 
-        if track.is_stream():
+        if track.is_stream:
             position = "🔴 Live"
         else:
-            position = f"{format_time(player.position * 1000)}/{format_time(track.length * 1000)}"
+            position = f"{format_time(player.position)}/{format_time(track.length)}"
 
+        title = track.title if not track.spotify else f"{track.author} - {track.title}"
         embed = ctx.embed(
-            track.title,
+            title,
             url=track.uri,
             thumbnail_url=self.get_embed_thumbnail(track)
         )
         embed.add_field(name="Position", value=position)
 
-        embed.add_field(name="Uploader", value=track.author)
+        if not track.spotify:
+            embed.add_field(name="Uploader", value=track.author)
+
         embed.add_field(name="Requested by", value=track.ctx.author.mention)
+
+        if "youtube" in track.uri:
+            embed.set_footer(text="\u200b", icon_url=YOUTUBE_LOGO_URL)
 
         await ctx.send(embed=embed)
 
@@ -630,9 +571,8 @@ class Music(Cog):
         if player.shuffle:
             del player.queue[player.queue.find_position(track)]
 
-        assert isinstance(track, Track)
-
-        embed = ctx.embed(f"Removed {track.title}", url=track.uri)
+        title = track.title if not track.spotify else f"{track.author} - {track.title}"
+        embed = ctx.embed(f"Removed {title}", url=track.uri)
         embed.add_field(name="Requested by", value=track.ctx.author.mention)
         await ctx.send(embed=embed)
 
@@ -645,8 +585,6 @@ class Music(Cog):
         if _from == _to:  # no need to do anything here
             return
 
-        assert isinstance(queue, WaitQueue)
-
         try:
             queue[_from - 1]
             queue[_to - 1]
@@ -658,8 +596,8 @@ class Music(Cog):
         del queue[_from - 1]
         queue.put_at_index(_to - 1, track)
 
-        assert isinstance(track, Track)
-        await ctx.send(embed=ctx.embed(f"Moved {track.title} to position {_to}"))
+        title = track.title if not track.spotify else f"{track.author} - {track.title}"
+        await ctx.send(embed=ctx.embed(f"Moved {title} to position {_to}"))
 
     @commands.command()
     async def shuffle(self, ctx: Context):
@@ -686,27 +624,27 @@ class Music(Cog):
                - seek -23s
         """
         player = ctx.voice_client
-        seconds = 0
+        milliseconds = 0
 
-        if not player.is_playing():
+        if not player.is_playing:
             return await ctx.send(embed=ctx.embed("Nothing is playing!"))
 
         if match := HH_MM_SS_RE.fullmatch(time):
-            seconds += int(match.group("h")) * 3600000
-            seconds += int(match.group("m")) * 60000
-            seconds += int(match.group("s")) * 1000
+            milliseconds += int(match.group("h")) * 3600000
+            milliseconds += int(match.group("m")) * 60000
+            milliseconds += int(match.group("s")) * 1000
 
-            new_position = seconds
+            new_position = milliseconds
         elif match := MM_SS_RE.fullmatch(time):
-            seconds += int(match.group("m")) * 60000
-            seconds += int(match.group("s")) * 1000
+            milliseconds += int(match.group("m")) * 60000
+            milliseconds += int(match.group("s")) * 1000
 
-            new_position = seconds
+            new_position = milliseconds
         elif match := OFFSET_RE.fullmatch(time):
-            seconds += int(match.group("s")) * 1000
+            milliseconds += int(match.group("s")) * 1000
 
             position = player.position
-            new_position = position + seconds
+            new_position = position + milliseconds
         elif match := HUMAN_RE.fullmatch(time):
             if m := match.group("m"):
                 if match.group("s") and time.lower().endswith("m"):
@@ -714,21 +652,21 @@ class Music(Cog):
                         "Invalid time format!",
                         f"See `{ctx.prefix}help seek` for accepted formats."
                     ))
-                seconds += int(m) * 60000
+                milliseconds += int(m) * 60000
             if s := match.group("s"):
                 if time.lower().endswith("m"):
-                    seconds += int(s) * 60000
+                    milliseconds += int(s) * 60000
                 else:
-                    seconds += int(s) * 1000
+                    milliseconds += int(s) * 1000
 
-            new_position = seconds
+            new_position = milliseconds
         else:
             return await ctx.send(embed=ctx.embed(
                 "Invalid time format!",
                 f"See `{ctx.prefix}help seek` for accepted formats."
             ))
 
-        new_position = max(0, min(new_position, player.track.length))
+        new_position = max(0, min(new_position, player.current.length))
         embed = ctx.embed(f"Seeked to {format_time(new_position)}.")
         await player.seek(new_position)
         await ctx.send(embed=embed)

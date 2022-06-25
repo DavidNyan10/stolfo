@@ -4,9 +4,8 @@ from os import listdir, path
 from discord import ClientUser, Game, Intents, Message, Status
 from discord.ext import commands
 from discord.ext.commands import when_mentioned_or
-from wavelink import NodePool
+from pomice import Node, NodePool
 
-import spotify_ext as spotify
 from config import LL_HOST, LL_PORT, LL_PASS, SPOTIFY_ID, SPOTIFY_SECRET, TOKEN
 from context import Context
 
@@ -16,6 +15,7 @@ class Bot(commands.Bot):
         super().__init__(*args, **options)
         self.start_time: datetime
 
+        self.pomice = NodePool()
         self.loop.create_task(self._on_first_ready())
 
     async def get_context(self, message: Message, *, cls=Context):
@@ -27,13 +27,14 @@ class Bot(commands.Bot):
         self.user: ClientUser
         self.start_time = datetime.utcnow()
 
-        spotify_client = spotify.SpotifyClient(client_id=SPOTIFY_ID, client_secret=SPOTIFY_SECRET)
-        await NodePool.create_node(
+        await self.pomice.create_node(
             bot=self,
             host=LL_HOST,
             port=LL_PORT,
             password=LL_PASS,
-            spotify_client=spotify_client,  # type: ignore
+            identifier="MAIN",
+            spotify_client_id=SPOTIFY_ID,
+            spotify_client_secret=SPOTIFY_SECRET
         )
 
         # loading cogs
